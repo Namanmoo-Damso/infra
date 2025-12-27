@@ -74,7 +74,7 @@ if [ "$ACTION" == "start" ]; then
         echo "----------------------------------------"
 
         # 실제 SSH 접속 (Host 머신에서 실행됨)
-        ssh -o StrictHostKeyChecking=no -i "$PEM_FILE" "$TARGET"
+        ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -i "$PEM_FILE" "$TARGET"
     else
         echo "⚠️ SSH 접속 정보를 찾을 수 없습니다. (서버 기동 실패 또는 타임아웃)"
     fi
