@@ -76,6 +76,48 @@ def wait_for_ssh(ip):
     return False
 
 
+def provision_server(ip):
+    print(f"🛠️ Provisioning server at {ip}...")
+
+    # 1. setup.sh 파일 전송 (SCP)
+    try:
+        subprocess.check_call(
+            [
+                "scp",
+                "-o",
+                "StrictHostKeyChecking=no",
+                "-i",
+                SSH_KEY_PATH,
+                "setup.sh",  # Dockerfile에서 COPY 했으므로 현재 경로에 있음
+                f"{SSH_USER}@{ip}:/home/{SSH_USER}/setup.sh",
+            ],
+            stdout=subprocess.DEVNULL,
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Failed to transfer setup script: {e}")
+        return False
+
+    # 2. 원격지에서 setup.sh 실행 (SSH)
+    print("🛠️ Running setup script on remote EC2...")
+    try:
+        subprocess.check_call(
+            [
+                "ssh",
+                "-o",
+                "StrictHostKeyChecking=no",
+                "-i",
+                SSH_KEY_PATH,
+                f"{SSH_USER}@{ip}",
+                "chmod +x setup.sh && ./setup.sh",  # 실행 권한 주고 실행
+            ]
+        )
+        print("✅ Provisioning complete!")
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Provisioning failed: {e}")
+        return False
+
+
 def deploy_services(ip):
     print(f"🚀 Deploying docker-compose.yml to {ip}...")
 
@@ -131,11 +173,16 @@ def start_instance_sync():
         # [추가됨] 쉘 스크립트가 낚아챌 수 있도록 접속 정보를 특정 포맷으로 출력
         print(f"__SSH_CONNECT_TARGET__={SSH_USER}@{ip}")
 
-        if DEPLOY and ip:
-            if wait_for_ssh(ip):
-                deploy_services(ip)
-            else:
-                print("❌ SSH connection timed out.")
+        if ip and wait_for_ssh(ip):
+            provision_server(ip)
+        else:
+            print("❌ SSH connection timed out.")
+
+        # if DEPLOY and ip:
+        #     if wait_for_ssh(ip):
+        #         deploy_services(ip)
+        #     else:
+        #         print("❌ SSH connection timed out.")
 
     except Exception as e:
         print(f"❌ Error: {e}")
