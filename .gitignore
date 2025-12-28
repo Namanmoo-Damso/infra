@@ -1,3 +1,4 @@
 .env
 .server_output.log
 *.pem
+secrets/
