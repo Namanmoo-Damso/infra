@@ -54,14 +54,21 @@ def analyze_code_with_bedrock(diff_content):
     ## 1. 전체적인 리뷰 요약
     (Brief summary of the changes and code quality)
 
-    ## 2. 변경 제안/요청 리스트
-    - (1-line summary of suggestion 1)
-    - (1-line summary of suggestion 2)
-    ...
+    ## 2. 🚨 중요 이슈 (Critical)
+    List critical issues that MUST be fixed (bugs, security vulnerabilities, logic errors).
+    - [ ] (1-line summary)
+    - [ ] (1-line summary)
+    (If none, write "발견된 중요 이슈 없음")
+
+    ## 3. 💡 개선 제안 (Minor)
+    List suggestions for improvement (code style, performance, readability).
+    - [ ] (1-line summary)
+    - [ ] (1-line summary)
 
     ## 3. 상세 제안 (As-Is vs To-Be)
     For each suggestion, provide:
-    ### (Title of Suggestion)
+    ### (Title)
+    - **유형:** [중요] or [제안]
     - **설명:** (Why this change is needed)
     - **As-Is (기존 코드):**
     ```
