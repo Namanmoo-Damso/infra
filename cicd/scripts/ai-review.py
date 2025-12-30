@@ -10,13 +10,13 @@ import requests
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 PR_NUMBER = os.environ.get("PR_NUMBER")
 REPO = os.environ.get("REPO")
-AWS_REGION = os.environ.get("AWS_REGION", "ap-northeast-1")  # 기본값 도쿄
+AWS_REGION = "us-east-1"
 S3_BUCKET_NAME = os.environ.get(
     "S3_BUCKET_NAME", "krafton-jg-namanmoo-ai-pr-reviews"
 )  # 리뷰를 저장할 버킷
 
 # Bedrock 모델 ID (Claude Sonnet 4.5)
-MODEL_ID = "anthropic.claude-sonnet-4-5-20250929-v1:0"
+MODEL_ID = "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
 
 
 def get_pr_details():

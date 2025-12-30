@@ -32,7 +32,7 @@ jobs:
               uses: aws-actions/configure-aws-credentials@v4
               with:
                 role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-                aws-region: ap-northeast-1 # 도쿄, 서울 region은 Bedrock 출시가 부족함
+                aws-region: ap-northeast-2
 
             - name: Set up Python
               uses: actions/setup-python@v4
