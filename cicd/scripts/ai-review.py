@@ -65,19 +65,23 @@ def analyze_code_with_bedrock(diff_content):
     - [ ] (1-line summary)
     - [ ] (1-line summary)
 
-    ## 3. 상세 제안 (As-Is vs To-Be)
-    For each suggestion, provide:
-    ### (Title)
-    - **유형:** [중요] or [제안]
+    ## 4. 상세 설명 (As-Is vs To-Be)
+    For each suggestion, use the following HTML collapsible format:
+
+    <details>
+    <summary>🚨 or💡 <strong>(Title of Suggestion)</strong></summary>
+
     - **설명:** (Why this change is needed)
+
     - **As-Is (기존 코드):**
-    ```
+    ```language
     (Original code)
     ```
     - **To-Be (제안 코드):**
-    ```
+    ```language
     (Proposed code)
     ```
+    </details>
 
     Focus on:
     1. Potential bugs or logic errors.
