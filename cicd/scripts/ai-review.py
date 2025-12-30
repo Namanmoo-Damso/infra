@@ -10,7 +10,8 @@ import requests
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 PR_NUMBER = os.environ.get("PR_NUMBER")
 REPO = os.environ.get("REPO")
-AWS_REGION = "us-east-1"
+BEDROCK_REGION = "us-east-1"
+S3_REGION = os.environ.get("S3_REGION", "ap-northeast-2")
 S3_BUCKET_NAME = os.environ.get(
     "S3_BUCKET_NAME", "krafton-jg-namanmoo-ai-pr-reviews"
 )  # 리뷰를 저장할 버킷
@@ -42,7 +43,7 @@ def get_pr_diff():
 
 def analyze_code_with_bedrock(diff_content):
     """AWS Bedrock을 사용하여 코드를 분석합니다."""
-    bedrock = boto3.client(service_name="bedrock-runtime", region_name=AWS_REGION)
+    bedrock = boto3.client(service_name="bedrock-runtime", region_name=BEDROCK_REGION)
 
     # 프롬프트
     prompt = f"""
@@ -125,7 +126,7 @@ def save_review_to_s3(review_content, pr_details):
         print("Skipping S3 upload: S3_BUCKET_NAME not set.")
         return
 
-    s3 = boto3.client("s3", region_name=AWS_REGION)
+    s3 = boto3.client("s3", region_name=S3_REGION)
 
     # 파일명: reviews/레포명/작성자/날짜_PR번호.md
     date_str = datetime.now().strftime("%Y-%m-%d")
