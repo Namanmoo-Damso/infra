@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+from datetime import datetime
 
 import boto3
 import requests
@@ -10,10 +11,21 @@ GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 PR_NUMBER = os.environ.get("PR_NUMBER")
 REPO = os.environ.get("REPO")
 AWS_REGION = os.environ.get("AWS_REGION", "ap-northeast-1")  # 기본값 도쿄
+S3_BUCKET_NAME = os.environ.get(
+    "S3_BUCKET_NAME", "krafton-jg-namanmoo-ai-pr-reviews"
+)  # 리뷰를 저장할 버킷
 
 # Bedrock 모델 ID (Claude Sonnet 4.5)
-# AWS 콘솔 > Bedrock > Model access에서 해당 모델 사용 권한이 켜져 있어야 합니다.
 MODEL_ID = "anthropic.claude-sonnet-4-5-20250929-v1:0"
+
+
+def get_pr_details():
+    """PR의 상세 정보(제목, 작성자, 링크)를 가져옵니다."""
+    url = f"https://api.github.com/repos/{REPO}/pulls/{PR_NUMBER}"
+    headers = {"Authorization": f"token {GITHUB_TOKEN}"}
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    return response.json()
 
 
 def get_pr_diff():
@@ -107,6 +119,45 @@ def post_comment(comment_body):
     response.raise_for_status()
 
 
+def save_review_to_s3(review_content, pr_details):
+    """리뷰 내용을 S3 버킷에 마크다운 파일로 저장합니다."""
+    if not S3_BUCKET_NAME:
+        print("Skipping S3 upload: S3_BUCKET_NAME not set.")
+        return
+
+    s3 = boto3.client("s3", region_name=AWS_REGION)
+
+    # 파일명: reviews/레포명/작성자/날짜_PR번호.md
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    repo_name = REPO.split("/")[-1]
+    author = pr_details["user"]["login"]
+    file_key = f"reviews/{repo_name}/{author}/{date_str}_PR-{PR_NUMBER}.md"
+
+    # 마크다운 내용 구성
+    archive_content = f"""# AI Review Log
+
+- **저장소:** {REPO}
+- **PR:** [#{PR_NUMBER}: {pr_details["title"]}]({pr_details["html_url"]})
+- **작성자:** {pr_details["user"]["login"]}
+- **This review created at:** {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+
+---
+
+{review_content}
+"""
+
+    try:
+        s3.put_object(
+            Bucket=S3_BUCKET_NAME,
+            Key=file_key,
+            Body=archive_content.encode("utf-8"),
+            ContentType="text/markdown",
+        )
+        print(f"Review archived to s3://{S3_BUCKET_NAME}/{file_key}")
+    except Exception as e:
+        print(f"Failed to upload to S3: {e}")
+
+
 def main():
     if not all([GITHUB_TOKEN, PR_NUMBER, REPO]):
         print("Error: Missing environment variables.")
@@ -120,6 +171,8 @@ def main():
         if not diff.strip():
             print("No changes found in this PR.")
             sys.exit(0)
+
+        pr_details = get_pr_details()
     except Exception as e:
         print(f"Failed to fetch PR diff: {e}")
         sys.exit(1)
@@ -140,8 +193,13 @@ def main():
         )
         post_comment(formatted_comment)
         print("Review posted successfully!")
+
+        # S3 저장
+        save_review_to_s3(review_result, pr_details)
+        print("Review saved into s3 successfully!")
+
     except Exception as e:
-        print(f"Failed to post comment: {e}")
+        print(f"Failed to process review: {e}")
         sys.exit(1)
 
 
