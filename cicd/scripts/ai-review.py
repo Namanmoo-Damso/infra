@@ -10,7 +10,10 @@ GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 PR_NUMBER = os.environ.get("PR_NUMBER")
 REPO = os.environ.get("REPO")
 AWS_REGION = os.environ.get("AWS_REGION", "ap-northeast-1")  # 기본값 도쿄
-MODEL_ID = "anthropic.claude-3-sonnet-20240229-v1:0"
+
+# Bedrock 모델 ID (Claude Sonnet 4.5)
+# AWS 콘솔 > Bedrock > Model access에서 해당 모델 사용 권한이 켜져 있어야 합니다.
+MODEL_ID = "anthropic.claude-sonnet-4-5-20250929-v1:0"
 
 
 def get_pr_diff():
@@ -29,9 +32,32 @@ def analyze_code_with_bedrock(diff_content):
     """AWS Bedrock을 사용하여 코드를 분석합니다."""
     bedrock = boto3.client(service_name="bedrock-runtime", region_name=AWS_REGION)
 
-    # 프롬프트 작성
+    # 프롬프트
     prompt = f"""
     You are a senior software engineer. Please review the following code changes (git diff).
+
+    Your review MUST follow this structure in Korean:
+
+    ## 1. 전체적인 리뷰 요약
+    (Brief summary of the changes and code quality)
+
+    ## 2. 변경 제안/요청 리스트
+    - (1-line summary of suggestion 1)
+    - (1-line summary of suggestion 2)
+    ...
+
+    ## 3. 상세 제안 (As-Is vs To-Be)
+    For each suggestion, provide:
+    ### (Title of Suggestion)
+    - **설명:** (Why this change is needed)
+    - **As-Is (기존 코드):**
+    ```
+    (Original code)
+    ```
+    - **To-Be (제안 코드):**
+    ```
+    (Proposed code)
+    ```
 
     Focus on:
     1. Potential bugs or logic errors.
@@ -39,13 +65,13 @@ def analyze_code_with_bedrock(diff_content):
     3. Code style and best practices.
     4. Performance improvements.
 
-    You MUST provide your review in **Korean** (한국어).
-    Be concise and constructive. If the code looks good, just say "LGTM (Looks Good To Me)".
+    Please provide your review in **Korean** (한국어).
+    If the code looks good, just say "LGTM (Looks Good To Me)".
 
     Code changes:
     {diff_content[:50000]}
     """
-    # 토큰 제한을 고려해 diff 내용을 50,000자로 제한 (필요시 조정)
+    # 토큰 제한을 고려해 diff 내용을 50,000자로 제한
 
     body = json.dumps(
         {
@@ -110,7 +136,7 @@ def main():
     print("Posting comment to GitHub...")
     try:
         formatted_comment = (
-            f"## 🤖 AI Code Review from \n\n**model**: {MODEL_ID} \n\n{review_result}"
+            f"## 🤖 AI Code Review (Claude Sonnet 4.5)\n\n{review_result}"
         )
         post_comment(formatted_comment)
         print("Review posted successfully!")
@@ -121,5 +147,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# PR을 리뷰할 스크립트
