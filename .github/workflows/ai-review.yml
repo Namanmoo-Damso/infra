@@ -2,7 +2,7 @@ name: AI PR Review
 
 on:
     pull_request:
-        types: [opened, synchronize]
+        types: [opened]
 
 # 권한 부여
 permissions:
