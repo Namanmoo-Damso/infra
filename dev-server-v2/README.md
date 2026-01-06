@@ -16,3 +16,39 @@
 
 
 
+
+- 2026-01-06
+
+    - 모듈화
+
+
+
+## 실행방법
+
+
+```sh
+# 새로운 모듈 추가
+terraform init
+
+# 확인
+terraform plan
+
+# 리소스 생성
+terraform apply
+
+# output 출력
+terraform output
+
+# 리소스 제거
+terraform destroy
+
+# 특정 모듈만 적용(root module에 module key에 이름)
+terraform apply -target=module.<module_name>
+# e.g. terraform destroy -target=module.my_cpu_test
+```
+
+  - `<module_name>` 예시
+      - File Path: terraform/main.tf, 17:17
+        ```terraform
+        module "cpu_test" {
+        ```

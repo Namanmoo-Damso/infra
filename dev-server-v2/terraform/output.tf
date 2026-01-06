@@ -1,11 +1,15 @@
-output "instance_ids" {
-  value = aws_instance.example[*].id
+output "dev_server_ids" {
+  value = module.dev-server.instance_ids
 }
 
-output "instance_public_ips" {
-  value = aws_instance.example[*].public_ip
+output "dev_server_public_ips" {
+  value = module.dev-server.public_ips
 }
 
-output "eip_public_ips" {
-  value = aws_eip.example[*].public_ip
+output "cpu_test_ids" {
+  value = module.cpu_test.instance_ids
+}
+
+output "cpu_test_public_ips" {
+  value = module.cpu_test.public_ips
 }

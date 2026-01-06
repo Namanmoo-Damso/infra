@@ -2,39 +2,29 @@ data "aws_security_group" "example" {
   name = "general-dev-server"
 }
 
-resource "aws_instance" "example" {
-  count         = 3                       # 3개의 인스턴스 생성
-  ami           = "ami-0c447e8442d5380a3" # 아래 소개
-  instance_type = "t3.medium"
+module "dev-server" {
+  source = "./modules/dev-server"
 
-  # SSH 접속용 키 페어 (AWS 콘솔 > EC2 > Key Pairs에서 생성)
-  key_name = "dev-server" # 실제 키 페어 이름으로 변경
-
-  # 보안 그룹 (SSH 22번 포트 허용 등)
-  vpc_security_group_ids = [data.aws_security_group.example.id] # 실제 보안 그룹 ID로 변경 (기본 VPC의 기본 SG 사용 가능)
-
-  # 태그 (동적 이름 생성)
-  tags = {
-    Name        = "MyExampleInstance-${count.index}"
-    Description = "test-dev-server"
-  }
-
-  # 루트 볼륨 크기 늘리기 (기본 8GB → 20GB)
-  root_block_device {
-    volume_size = 20    # GB 단위
-    volume_type = "gp3" # SSD 타입
-  }
+  ami_id            = "ami-0c447e8442d5380a3"
+  instance_count    = "5"
+  instance_type     = "t3.medium"
+  volume_size       = 20
+  key_name          = "dev-server"
+  security_group_id = data.aws_security_group.example.id
+  tag_name          = "general_dev_server"
 }
 
-# Elastic IP (고정 IP) 생성 및 할당
-resource "aws_eip" "example" {
-  count    = 3 # 인스턴스 수만큼
-  instance = aws_instance.example[count.index].id
-  tags = {
-    Name = "EIP-for-Test-Instance-${count.index}"
-  }
-}
+module "cpu_test" {
+  source = "./modules/c7i-test"
 
+  ami_id            = "ami-0c447e8442d5380a3"
+  instance_count    = "5"
+  instance_type     = "c7i.xlarge"
+  volume_size       = 20
+  key_name          = "dev-server"
+  security_group_id = data.aws_security_group.example.id
+  tag_name          = "c7i-xlarge-benchmark-server"
+}
 
 # AMI는 EC2 인스턴스의 템플릿으로, 다음을 포함해요:
 # - OS: Linux (Amazon Linux, Ubuntu, CentOS 등), Windows 등. AMI 이름으로 OS를 선택해요 (예: "amzn2"는 Amazon Linux 2, "ubuntu"는 Ubuntu).
