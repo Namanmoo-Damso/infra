@@ -3,7 +3,7 @@ data "aws_security_group" "example" {
 }
 
 module "dev-server" {
-  source = "./modules/dev-server"
+  source = "./modules/ec2-instance-with-eip"
 
   ami_id            = "ami-0c447e8442d5380a3"
   instance_count    = "5"
@@ -15,7 +15,7 @@ module "dev-server" {
 }
 
 module "cpu_test" {
-  source = "./modules/c7i-test"
+  source = "./modules/ec2-instance-with-eip"
 
   ami_id            = "ami-0c447e8442d5380a3"
   instance_count    = "5"
