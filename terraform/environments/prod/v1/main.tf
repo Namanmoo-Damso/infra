@@ -3,6 +3,16 @@
 # =============================================================================
 
 # -----------------------------------------------------------------------------
+# Global 리소스 참조 (remote state)
+# -----------------------------------------------------------------------------
+data "terraform_remote_state" "global" {
+  backend = "local"
+  config = {
+    path = "../../global/terraform.tfstate"
+  }
+}
+
+# -----------------------------------------------------------------------------
 # 보안 그룹 참조 (global에서 생성된 것)
 # -----------------------------------------------------------------------------
 data "aws_security_group" "general_dev_server" {
@@ -26,8 +36,8 @@ module "prod_server" {
   security_group_id = data.aws_security_group.general_dev_server.id
   tag_name          = "prod-v1-server"
 
-  # IAM 인스턴스 프로파일 (S3 접근용) - 추후 추가
-  # iam_instance_profile = aws_iam_instance_profile.prod_ec2.name
+  # IAM 인스턴스 프로파일 (S3 접근용)
+  iam_instance_profile = data.terraform_remote_state.global.outputs.prod_ec2_instance_profile_name
 
   # user_data 추후 추가 예정:
   # - Docker & Docker Compose 설치
