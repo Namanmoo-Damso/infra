@@ -5,10 +5,10 @@
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-# 범용 서버 보안 그룹 (FE/BE 팀 - LiveKit 서버 포함)
+# 범용 개발 서버 보안 그룹 (FE/BE 팀 - LiveKit 서버 포함)
 # -----------------------------------------------------------------------------
-resource "aws_security_group" "general_server" {
-  name        = "general-server"
+resource "aws_security_group" "general_dev_server" {
+  name        = "general-dev-server"
   description = "범용 개발 서버 보안 그룹 (LiveKit 포함)"
 
   # SSH
@@ -75,7 +75,7 @@ resource "aws_security_group" "general_server" {
   }
 
   tags = {
-    Name      = "general-server"
+    Name      = "general-dev-server"
     ManagedBy = "Terraform"
   }
 }
@@ -132,9 +132,9 @@ resource "aws_security_group" "ai_gpu_server" {
 # -----------------------------------------------------------------------------
 # Outputs - 다른 환경에서 참조
 # -----------------------------------------------------------------------------
-output "general_server_sg_id" {
-  description = "범용 서버 보안 그룹 ID"
-  value       = aws_security_group.general_server.id
+output "general_dev_server_sg_id" {
+  description = "범용 개발 서버 보안 그룹 ID"
+  value       = aws_security_group.general_dev_server.id
 }
 
 output "ai_gpu_server_sg_id" {
