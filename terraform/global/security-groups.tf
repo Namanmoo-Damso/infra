@@ -9,7 +9,7 @@
 # -----------------------------------------------------------------------------
 resource "aws_security_group" "general_dev_server" {
   name        = "general-dev-server"
-  description = "범용 개발 서버 보안 그룹 (LiveKit 포함)"
+  description = "General development server security group (includes LiveKit)"
 
   # SSH
   ingress {
@@ -85,7 +85,7 @@ resource "aws_security_group" "general_dev_server" {
 # -----------------------------------------------------------------------------
 resource "aws_security_group" "ai_gpu_server" {
   name        = "ai-gpu-server"
-  description = "AI GPU 서버 보안 그룹"
+  description = "AI GPU server security group"
 
   # SSH
   ingress {

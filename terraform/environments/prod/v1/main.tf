@@ -8,7 +8,7 @@
 data "terraform_remote_state" "global" {
   backend = "local"
   config = {
-    path = "../../global/terraform.tfstate"
+    path = "../../../global/terraform.tfstate"
   }
 }
 
@@ -39,11 +39,6 @@ module "prod_server" {
   # IAM 인스턴스 프로파일 (S3 접근용)
   iam_instance_profile = data.terraform_remote_state.global.outputs.prod_ec2_instance_profile_name
 
-  # user_data 추후 추가 예정:
-  # - Docker & Docker Compose 설치
-  # - AWS CLI 설치
-  # - S3에서 docker-compose.yml, env.zip 다운로드
-  # - GitHub Container Registry에서 이미지 pull
-  # - docker-compose up -d
-  # user_data = file("${path.module}/user-data/init.sh")
+  # 초기화 스크립트 (Docker, AWS CLI, S3 다운로드, docker-compose 실행)
+  user_data = file("${path.module}/user-data/init.sh")
 }
