@@ -23,5 +23,5 @@ module "general_dev_servers" {
   security_group_id = data.aws_security_group.general_dev_server.id
   tag_name          = "general-dev-server"
 
-  # user_data = file("${path.module}/user-data/init.sh")  # 필요 시 주석 해제
+  user_data = file("${path.module}/user-data/init.sh")
 }
