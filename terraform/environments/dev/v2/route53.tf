@@ -16,7 +16,7 @@ data "aws_route53_zone" "main" {
 # -----------------------------------------------------------------------------
 resource "aws_route53_record" "livekit_dev" {
   zone_id = data.aws_route53_zone.main.zone_id
-  name    = "rtc-dev.sodam.store" # LiveKit 개발 서버 서브도메인
+  name    = "livekit.sodam.store" # LiveKit 개발 서버 서브도메인
   type    = "A"
   ttl     = 60 # 1분 (개발 환경, IP 변경 시 빠른 전파)
 
