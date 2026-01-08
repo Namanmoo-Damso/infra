@@ -1,0 +1,113 @@
+# =============================================================================
+# Production Docker Compose Configuration
+# =============================================================================
+# GHCR 이미지를 사용하여 전체 스택을 배포
+# S3에서 다운로드한 env 파일을 사용
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # LiveKit Server - WebRTC 미디어 서버
+  # ---------------------------------------------------------------------------
+  livekit:
+    image: livekit/livekit-server:latest
+    command: --config /etc/livekit.yaml
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml:ro
+    network_mode: host
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Caddy - 리버스 프록시 & HTTPS 자동 인증서
+  # ---------------------------------------------------------------------------
+  caddy:
+    image: caddy:2
+    network_mode: host
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL - 메인 데이터베이스
+  # ---------------------------------------------------------------------------
+  db:
+    image: postgres:16
+    env_file:
+      - ./db.env
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Redis - 캐시 & 세션 스토어
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    command: ['redis-server', '--save', '60', '1', '--loglevel', 'warning']
+    volumes:
+      - redis_data:/data
+    ports:
+      - '127.0.0.1:6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # API Server - 백엔드 API (GHCR 이미지)
+  # ---------------------------------------------------------------------------
+  api:
+    image: ghcr.io/namanmoo-damso/api:v1
+    env_file:
+      - ./api.env
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    volumes:
+      - ./secrets:/secrets:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - '127.0.0.1:8080:8080'
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Web Frontend - Next.js (GHCR 이미지, 빌드타임 env 주입됨)
+  # ---------------------------------------------------------------------------
+  web:
+    image: ghcr.io/namanmoo-damso/web:v1
+    ports:
+      - '127.0.0.1:3000:3000'
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # AI Agent - LiveKit 음성 AI 에이전트 (GHCR 이미지)
+  # ---------------------------------------------------------------------------
+  agent:
+    image: ghcr.io/namanmoo-damso/agent:v1
+    env_file:
+      - ./agent.env
+    network_mode: host
+    depends_on:
+      - livekit
+    restart: unless-stopped
+
+# =============================================================================
+# Persistent Volumes
+# =============================================================================
+volumes:
+  caddy_data:
+  caddy_config:
+  db_data:
+  redis_data:

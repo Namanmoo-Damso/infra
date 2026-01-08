@@ -2,6 +2,7 @@
 .server_output.log
 *.pem
 secrets/
+!secrets/README.md
 
 # 로컬 실행 전용
 run/
