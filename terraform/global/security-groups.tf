@@ -56,6 +56,15 @@ resource "aws_security_group" "general_dev_server" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # LiveKit TCP Fallback (방화벽 등으로 UDP 차단 시 대체)
+  ingress {
+    description = "LiveKit TCP Fallback"
+    from_port   = 7883
+    to_port     = 7883
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   # WebRTC Media (UDP) - 실시간 음성/영상 스트리밍
   ingress {
     description = "WebRTC Media"
