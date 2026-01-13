@@ -31,3 +31,10 @@ resource "aws_instance" "this" {
     volume_type = "gp3"
   }
 }
+
+resource "aws_ec2_instance_state" "this" {
+  count = var.start_stopped ? var.instance_count : 0
+
+  instance_id = aws_instance.this[count.index].id
+  state       = "stopped"
+}

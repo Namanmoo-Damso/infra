@@ -48,3 +48,9 @@ variable "iam_instance_profile" {
   type        = string
   default     = ""
 }
+
+variable "start_stopped" {
+  description = "인스턴스를 stopped 상태로 생성할지 여부"
+  type        = bool
+  default     = false
+}

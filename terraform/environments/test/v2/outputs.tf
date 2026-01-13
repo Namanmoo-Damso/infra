@@ -11,8 +11,3 @@ output "ai_gpu_dev_public_ips" {
   description = "AI GPU 개발 서버 Public IP 목록"
   value       = module.ai_gpu_dev_servers.public_ips
 }
-
-output "ai_gpu_dev_private_ips" {
-  description = "AI GPU 개발 서버 Private IP 목록"
-  value       = module.ai_gpu_dev_servers.private_ips
-}
