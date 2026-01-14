@@ -17,7 +17,7 @@ module "ai_gpu_dev_servers" {
 
   instance_count    = 5
   ami_id            = "ami-09399dbfdc84fada6" # Deep Learning Base GPU AMI (Ubuntu 24.04)
-  instance_type     = "g5.xlarge"             # NVIDIA A10G 24GB, 4 vCPU, 16GB RAM
+  instance_type     = "g5.2xlarge"            # NVIDIA A10G 24GB, 8 vCPU, 32GB RAM
   volume_size       = 200
   key_name          = "dev-server"
   security_group_id = data.aws_security_group.ai_gpu_server.id
