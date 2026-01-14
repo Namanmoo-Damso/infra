@@ -1,0 +1,112 @@
+services:
+  # Reverse Proxy
+  caddy:
+    image: caddy:2
+    environment:
+      - TZ=Asia/Seoul
+    network_mode: host
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+  # Database
+  db:
+    image: pgvector/pgvector:pg16
+    env_file: ./db.env
+    environment:
+      - TZ=Asia/Seoul
+    ports:
+      - '5432:5432'
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    command: ['postgres', '-c', 'timezone=Asia/Seoul']
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # Cache
+  redis:
+    image: redis:7-alpine
+    environment:
+      - TZ=Asia/Seoul
+    command: ['redis-server', '--save', '60', '1', '--loglevel', 'warning']
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # Backend API
+  api:
+    image: ghcr.io/namanmoo-damso/api:v2
+    env_file: ./api.env
+    environment:
+      - TZ=Asia/Seoul
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    volumes:
+      - ./secrets:/secrets:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - '127.0.0.1:8080:8080'
+    restart: unless-stopped
+
+  # Frontend Web
+  web:
+    image: ghcr.io/namanmoo-damso/web:v2
+    env_file: ./web.env
+    environment:
+      - TZ=Asia/Seoul
+    ports:
+      - '127.0.0.1:3000:3000'
+    restart: unless-stopped
+
+  # Agent Service
+  agent:
+    image: ghcr.io/namanmoo-damso/agent:v2
+    env_file: ./agent.env
+    network_mode: host
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'pgrep -f agent.py || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Transcript Storage Service
+  transcript-storage:
+    image: ghcr.io/namanmoo-damso/agent:v2
+    env_file: ./agent.env
+    network_mode: host
+    restart: unless-stopped
+    command: ['python', 'agent/storage/transcript_listener.py']
+    healthcheck:
+      test: ['CMD-SHELL', 'pgrep -f transcript_listener.py || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      - agent
+
+volumes:
+  caddy_data:
+  caddy_config:
+  db_data:
+  redis_data:
