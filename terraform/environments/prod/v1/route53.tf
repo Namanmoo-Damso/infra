@@ -24,6 +24,8 @@ resource "aws_route53_record" "prod_v1" {
   type    = "A"
   ttl     = 60 # 1분; 어차피 테스트 정도로 사용될 예정
 
+  allow_overwrite = true # Allows overwriting if the record already exists
+
   # 동적으로 생성된 EC2의 Public IP
   records = [module.prod_server.public_ips[0]]
 }
