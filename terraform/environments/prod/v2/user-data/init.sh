@@ -81,7 +81,7 @@ chown ubuntu:ubuntu "$DEPLOY_DIR"
 # -----------------------------------------------------------------------------
 log_message "Downloading env.zip, docker-compose.yml from S3..."
 cd "$DEPLOY_DIR"
-aws s3 cp s3://sodam-prod-artifacts/prod/v1/ ./ --recursive
+aws s3 cp s3://sodam-prod-artifacts/prod/v2/ ./ --recursive
 log_message "Downloaded env.zip, docker-compose.yml successfully"
 
 # -----------------------------------------------------------------------------

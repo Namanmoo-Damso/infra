@@ -7,15 +7,21 @@ ORG="namanmoo-damso"
 GITHUB_BASE="https://github.com/$ORG"
 WORK_DIR="./build-workspace"
 
-# Git reference (branch, tag, or commit hash)
-# Leave empty for latest main branch
-GIT_REF="${GIT_REF}"
+# Git references (commit hashes) for each repository
+GIT_REF_API="2383efc"
+GIT_REF_WEB="53f1a79"
+GIT_REF_AGENT="e66b148"
 
 # Login to GitHub Container Registry
 echo "📦 Logging in to GHCR..."
-echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_USERNAME" --password-stdin
+# echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_USERNAME" --password-stdin
 
 echo "🚀 Building and pushing images with version: $VERSION"
+echo "=============================================="
+echo "Commit hashes:"
+echo "  api:   $GIT_REF_API"
+echo "  web:   $GIT_REF_WEB"
+echo "  agent: $GIT_REF_AGENT"
 echo "=============================================="
 
 # Clone or update repositories
@@ -23,13 +29,23 @@ echo "📥 Preparing repositories..."
 mkdir -p "$WORK_DIR"
 cd "$WORK_DIR"
 
-for repo in ops-api ops-web ops-agent; do
-    echo "  Cloning $repo..."
-    git clone "$GITHUB_BASE/$repo.git"
-    cd "$repo"
-    git checkout "$GIT_REF"
-    cd ..
-done
+echo "  Cloning ops-api..."
+git clone "$GITHUB_BASE/ops-api.git"
+cd ops-api
+git checkout "$GIT_REF_API"
+cd ..
+
+echo "  Cloning ops-web..."
+git clone "$GITHUB_BASE/ops-web.git"
+cd ops-web
+git checkout "$GIT_REF_WEB"
+cd ..
+
+echo "  Cloning ops-agent..."
+git clone "$GITHUB_BASE/ops-agent.git"
+cd ops-agent
+git checkout "$GIT_REF_AGENT"
+cd ..
 
 # Build and push api
 echo ""

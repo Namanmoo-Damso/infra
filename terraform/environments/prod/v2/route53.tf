@@ -31,9 +31,29 @@ resource "aws_route53_record" "prod_v1" {
 }
 
 # -----------------------------------------------------------------------------
+# A 레코드 생성 (LiveKit 서버 IP 연결)
+# -----------------------------------------------------------------------------
+resource "aws_route53_record" "livekit_prod" {
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = "livekit.sodam.store"
+  type    = "A"
+  ttl     = 60 # 1분; dev/prod 전환 시 빠른 전파
+
+  allow_overwrite = true # dev/livekit과 전환 가능
+
+  # 동적으로 생성된 LiveKit EC2의 Public IP
+  records = [module.livekit_server.public_ips[0]]
+}
+
+# -----------------------------------------------------------------------------
 # Outputs
 # -----------------------------------------------------------------------------
 output "domain_name" {
   description = "배포 서버 도메인 주소"
   value       = aws_route53_record.prod_v1.fqdn
+}
+
+output "livekit_domain_name" {
+  description = "LiveKit 서버 도메인 주소"
+  value       = aws_route53_record.livekit_prod.fqdn
 }

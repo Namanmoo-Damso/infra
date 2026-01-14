@@ -42,3 +42,29 @@ module "prod_server" {
   # 초기화 스크립트 (Docker, AWS CLI, S3 다운로드, docker-compose 실행)
   user_data = file("${path.module}/user-data/init.sh")
 }
+
+# -----------------------------------------------------------------------------
+# LiveKit 전용 서버 (프로덕션)
+# =============================================================================
+# 프로덕션 환경용 LiveKit 인스턴스
+# WebRTC 미디어 서버로 독립 운영
+# c7i 인스턴스: CPU 집약적인 WebRTC 미디어 처리에 최적화
+# 주의: dev/livekit과 동시에 실행 불가 (같은 도메인 livekit.sodam.store 사용)
+# -----------------------------------------------------------------------------
+module "livekit_server" {
+  source = "../../../modules/compute/ec2-instance"
+
+  instance_count    = 1
+  ami_id            = "ami-0c447e8442d5380a3" # Ubuntu 24.04 LTS
+  instance_type     = "c7i.xlarge"            # 4 vCPU, 8GB RAM (WebRTC 최적화)
+  volume_size       = 20
+  key_name          = "dev-server"
+  security_group_id = data.aws_security_group.general_dev_server.id
+  tag_name          = "livekit-prod-server"
+
+  user_data = templatefile("${path.module}/user-data/livekit-init.sh.tftpl", {
+    webhook_urls       = join(" ", var.api_webhook_urls)
+    livekit_api_key    = var.livekit_api_key
+    livekit_api_secret = var.livekit_api_secret
+  })
+}
