@@ -46,17 +46,33 @@ resource "aws_eip" "nat" {
 # Subnets
 # -----------------------------------------------------------------------------
 
-# Public Subnet (ALB, NLB, NAT Gateway)
-resource "aws_subnet" "public" {
+# Public Subnet - AZ A (ALB, NLB, NAT Gateway)
+resource "aws_subnet" "public_a" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.1.0/24"
   availability_zone       = var.availability_zone_a
   map_public_ip_on_launch = true
 
   tags = {
-    Name        = "${var.project_name}-${var.environment}-public-subnet"
+    Name        = "${var.project_name}-${var.environment}-public-a-subnet"
     Environment = var.environment
     Type        = "Public"
+    AZ          = "a"
+  }
+}
+
+# Public Subnet - AZ C (ALB, NLB)
+resource "aws_subnet" "public_c" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.2.0/24"
+  availability_zone       = var.availability_zone_c
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-public-c-subnet"
+    Environment = var.environment
+    Type        = "Public"
+    AZ          = "c"
   }
 }
 
@@ -109,7 +125,7 @@ resource "aws_subnet" "private_data_c" {
 # -----------------------------------------------------------------------------
 resource "aws_nat_gateway" "main" {
   allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public.id
+  subnet_id     = aws_subnet.public_a.id
 
   tags = {
     Name        = "${var.project_name}-${var.environment}-nat"
@@ -157,8 +173,13 @@ resource "aws_route_table" "private" {
 # Route Table Associations
 # -----------------------------------------------------------------------------
 
-resource "aws_route_table_association" "public" {
-  subnet_id      = aws_subnet.public.id
+resource "aws_route_table_association" "public_a" {
+  subnet_id      = aws_subnet.public_a.id
+  route_table_id = aws_route_table.public.id
+}
+
+resource "aws_route_table_association" "public_c" {
+  subnet_id      = aws_subnet.public_c.id
   route_table_id = aws_route_table.public.id
 }
 

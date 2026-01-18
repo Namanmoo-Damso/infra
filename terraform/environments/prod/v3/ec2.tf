@@ -55,7 +55,7 @@ resource "aws_instance" "ai_agent" {
   key_name               = var.key_name
 
   root_block_device {
-    volume_size           = 100
+    volume_size           = 200
     volume_type           = "gp3"
     delete_on_termination = true
     encrypted             = true
