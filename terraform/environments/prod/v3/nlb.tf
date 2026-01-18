@@ -15,7 +15,7 @@ resource "aws_lb" "livekit" {
   load_balancer_type = "network"
   subnets            = [aws_subnet.public.id]
 
-  enable_deletion_protection = true
+  enable_deletion_protection       = true
   enable_cross_zone_load_balancing = true
 
   tags = {
