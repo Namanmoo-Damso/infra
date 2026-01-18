@@ -110,3 +110,9 @@ variable "livekit_domain" {
   type        = string
   default     = "livekit.sodam.store"
 }
+
+variable "acm_certificate_arn" {
+  description = "ACM 인증서 ARN (HTTPS용)"
+  type        = string
+  sensitive   = true
+}
