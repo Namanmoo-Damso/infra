@@ -90,6 +90,7 @@ variable "db_username" {
 variable "db_password" {
   description = "데이터베이스 마스터 비밀번호"
   type        = string
+  default     = "sodam-prod-db-2026"
   sensitive   = true
 }
 
@@ -120,5 +121,6 @@ variable "livekit_domain" {
 variable "acm_certificate_arn" {
   description = "ACM 인증서 ARN (HTTPS용)"
   type        = string
+  default     = "arn:aws:acm:ap-northeast-2:292873911373:certificate/f344fda3-0a63-44ac-9fe6-e58c0c0ab971"
   sensitive   = true
 }
