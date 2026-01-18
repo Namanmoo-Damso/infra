@@ -3,6 +3,19 @@
 # =============================================================================
 
 # -----------------------------------------------------------------------------
+# DB Parameter Group
+# -----------------------------------------------------------------------------
+resource "aws_db_parameter_group" "postgres" {
+  name   = "${var.project_name}-${var.environment}-postgres-params"
+  family = "postgres16"
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-postgres-params"
+    Environment = var.environment
+  }
+}
+
+# -----------------------------------------------------------------------------
 # DB Subnet Group
 # -----------------------------------------------------------------------------
 resource "aws_db_subnet_group" "main" {
@@ -21,16 +34,20 @@ resource "aws_db_subnet_group" "main" {
 resource "aws_db_instance" "postgres" {
   identifier     = "${var.project_name}-${var.environment}-postgres"
   engine         = "postgres"
-  engine_version = "16.4"
+  engine_version = "16"
 
-  instance_class    = var.db_instance_class
-  allocated_storage = 20
-  storage_type      = "gp3"
-  storage_encrypted = true
+  instance_class        = var.db_instance_class
+  allocated_storage     = 20
+  max_allocated_storage = 100
+  storage_type          = "gp3"
+  storage_encrypted     = true
 
   db_name  = var.db_name
   username = var.db_username
   password = var.db_password
+
+  # Parameter Group (pgvector extension)
+  parameter_group_name = aws_db_parameter_group.postgres.name
 
   # 네트워크 설정
   db_subnet_group_name   = aws_db_subnet_group.main.name
@@ -48,9 +65,8 @@ resource "aws_db_instance" "postgres" {
   monitoring_role_arn             = aws_iam_role.rds_monitoring.arn
 
   # 삭제 보호
-  deletion_protection       = true
-  skip_final_snapshot       = false
-  final_snapshot_identifier = "${var.project_name}-${var.environment}-final-snapshot-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
+  deletion_protection = true
+  skip_final_snapshot = true
 
   # 성능 개선
   performance_insights_enabled = true
@@ -58,6 +74,10 @@ resource "aws_db_instance" "postgres" {
   tags = {
     Name        = "${var.project_name}-${var.environment}-postgres"
     Environment = var.environment
+  }
+
+  lifecycle {
+    ignore_changes = [final_snapshot_identifier]
   }
 }
 

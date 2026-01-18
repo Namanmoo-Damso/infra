@@ -13,9 +13,9 @@ resource "aws_lb" "livekit" {
   name               = "${var.project_name}-${var.environment}-nlb"
   internal           = false
   load_balancer_type = "network"
-  subnets            = [aws_subnet.public.id]
+  subnets            = [aws_subnet.public_a.id, aws_subnet.public_c.id]
 
-  enable_deletion_protection       = true
+  enable_deletion_protection       = false
   enable_cross_zone_load_balancing = true
 
   tags = {
