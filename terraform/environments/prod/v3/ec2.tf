@@ -3,7 +3,7 @@
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-# Latest Ubuntu 24.04 LTS AMI
+# Latest Ubuntu 24.04 LTS AMI (일반 서버용)
 # -----------------------------------------------------------------------------
 data "aws_ami" "ubuntu" {
   most_recent = true
@@ -21,10 +21,33 @@ data "aws_ami" "ubuntu" {
 }
 
 # -----------------------------------------------------------------------------
+# AWS Deep Learning AMI (GPU 서버용)
+# -----------------------------------------------------------------------------
+data "aws_ami" "deep_learning" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["Deep Learning OSS Nvidia Driver AMI GPU PyTorch * (Ubuntu 22.04) *"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  filter {
+    name   = "architecture"
+    values = ["x86_64"]
+  }
+}
+
+# -----------------------------------------------------------------------------
 # AI Agent Server (GPU)
 # -----------------------------------------------------------------------------
 resource "aws_instance" "ai_agent" {
-  ami                    = data.aws_ami.ubuntu.id
+  ami                    = data.aws_ami.deep_learning.id
   instance_type          = var.ai_agent_instance_type
   subnet_id              = aws_subnet.private_prod.id
   vpc_security_group_ids = [aws_security_group.ai_agent.id]
