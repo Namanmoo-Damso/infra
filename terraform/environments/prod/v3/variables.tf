@@ -26,10 +26,16 @@ variable "vpc_cidr" {
   default     = "10.0.0.0/16"
 }
 
-variable "availability_zone" {
-  description = "가용 영역 (Single-AZ)"
+variable "availability_zone_a" {
+  description = "첫 번째 가용 영역"
   type        = string
   default     = "ap-northeast-2a"
+}
+
+variable "availability_zone_c" {
+  description = "두 번째 가용 영역"
+  type        = string
+  default     = "ap-northeast-2c"
 }
 
 # -----------------------------------------------------------------------------

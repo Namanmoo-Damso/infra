@@ -50,7 +50,7 @@ resource "aws_eip" "nat" {
 resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.1.0/24"
-  availability_zone       = var.availability_zone
+  availability_zone       = var.availability_zone_a
   map_public_ip_on_launch = true
 
   tags = {
@@ -64,7 +64,7 @@ resource "aws_subnet" "public" {
 resource "aws_subnet" "private_prod" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = "10.0.10.0/24"
-  availability_zone = var.availability_zone
+  availability_zone = var.availability_zone_a
 
   tags = {
     Name        = "${var.project_name}-${var.environment}-private-prod-subnet"
@@ -74,17 +74,33 @@ resource "aws_subnet" "private_prod" {
   }
 }
 
-# Private Subnet - Data (RDS, ElastiCache)
-resource "aws_subnet" "private_data" {
+# Private Subnet - Data (RDS, ElastiCache) - AZ A
+resource "aws_subnet" "private_data_a" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = "10.0.20.0/24"
-  availability_zone = var.availability_zone
+  availability_zone = var.availability_zone_a
 
   tags = {
-    Name        = "${var.project_name}-${var.environment}-private-data-subnet"
+    Name        = "${var.project_name}-${var.environment}-private-data-a-subnet"
     Environment = var.environment
     Type        = "Private"
     Purpose     = "Data"
+    AZ          = "a"
+  }
+}
+
+# Private Subnet - Data (RDS, ElastiCache) - AZ C
+resource "aws_subnet" "private_data_c" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.21.0/24"
+  availability_zone = var.availability_zone_c
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-private-data-c-subnet"
+    Environment = var.environment
+    Type        = "Private"
+    Purpose     = "Data"
+    AZ          = "c"
   }
 }
 
@@ -151,7 +167,12 @@ resource "aws_route_table_association" "private_prod" {
   route_table_id = aws_route_table.private.id
 }
 
-resource "aws_route_table_association" "private_data" {
-  subnet_id      = aws_subnet.private_data.id
+resource "aws_route_table_association" "private_data_a" {
+  subnet_id      = aws_subnet.private_data_a.id
+  route_table_id = aws_route_table.private.id
+}
+
+resource "aws_route_table_association" "private_data_c" {
+  subnet_id      = aws_subnet.private_data_c.id
   route_table_id = aws_route_table.private.id
 }
