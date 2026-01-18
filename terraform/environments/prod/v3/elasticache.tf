@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 resource "aws_elasticache_subnet_group" "main" {
   name       = "${var.project_name}-${var.environment}-redis-subnet-group"
-  subnet_ids = [aws_subnet.private_data.id]
+  subnet_ids = [aws_subnet.private_data_a.id, aws_subnet.private_data_c.id]
 
   tags = {
     Name        = "${var.project_name}-${var.environment}-redis-subnet-group"
