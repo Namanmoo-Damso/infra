@@ -41,51 +41,6 @@ resource "aws_iam_role_policy_attachment" "cloudwatch_agent_server_policy" {
   policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
 }
 
-# S3 접근 정책 (환경변수 파일 다운로드용)
-resource "aws_iam_role_policy" "s3_access" {
-  name = "${var.project_name}-${var.environment}-s3-access-policy"
-  role = aws_iam_role.ec2_instance_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "s3:GetObject",
-          "s3:ListBucket"
-        ]
-        Resource = [
-          "arn:aws:s3:::${var.project_name}-deployment/*",
-          "arn:aws:s3:::${var.project_name}-deployment"
-        ]
-      }
-    ]
-  })
-}
-
-# ECR 접근 정책 (Docker 이미지 pull용)
-resource "aws_iam_role_policy" "ecr_access" {
-  name = "${var.project_name}-${var.environment}-ecr-access-policy"
-  role = aws_iam_role.ec2_instance_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "ecr:GetAuthorizationToken",
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:BatchGetImage"
-        ]
-        Resource = "*"
-      }
-    ]
-  })
-}
-
 # Instance Profile (EC2에 Role 연결용)
 resource "aws_iam_instance_profile" "ec2_profile" {
   name = "${var.project_name}-${var.environment}-ec2-profile"
