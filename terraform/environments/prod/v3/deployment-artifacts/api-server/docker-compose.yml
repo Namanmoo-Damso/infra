@@ -1,6 +1,6 @@
 services:
   api:
-    image: ghcr.io/namanmoo-damso/api:v3
+    image: ghcr.io/namanmoo-damso/ops-api:v3
     container_name: api-server
     env_file: ./api.env
     ports:
@@ -16,7 +16,7 @@ services:
       - indexing-worker
 
   indexing-worker:
-    image: ghcr.io/namanmoo-damso/api:v3
+    image: ghcr.io/namanmoo-damso/ops-api:v3
     container_name: indexing-worker
     env_file: ./api.env
     restart: unless-stopped

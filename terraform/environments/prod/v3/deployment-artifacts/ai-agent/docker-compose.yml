@@ -1,6 +1,6 @@
 services:
   stt:
-    image: ghcr.io/namanmoo-damso/agent-stt:v3
+    image: ghcr.io/namanmoo-damso/ops-agent-stt:v3
     container_name: whisper-stt
     network_mode: host
     restart: unless-stopped
@@ -26,7 +26,7 @@ services:
       start_period: 30s
 
   ollama:
-    image: ghcr.io/namanmoo-damso/agent-llm:v3
+    image: ghcr.io/namanmoo-damso/ops-agent-ollama:v3
     container_name: ollama-llm
     network_mode: host
     volumes:
@@ -50,7 +50,7 @@ services:
       start_period: 60s
 
   agent:
-    image: ghcr.io/namanmoo-damso/agent-server:v3
+    image: ghcr.io/namanmoo-damso/ops-agent:v3
     container_name: agent-server
     env_file: ./agent.env
     network_mode: host
@@ -69,7 +69,7 @@ services:
         condition: service_healthy
 
   transcript-storage:
-    image: ghcr.io/namanmoo-damso/agent-server:v3
+    image: ghcr.io/namanmoo-damso/ops-agent:v3
     container_name: transcript-storage
     env_file: ./agent.env
     network_mode: host
@@ -85,7 +85,7 @@ services:
       - agent
 
   kma-mcp:
-    image: ghcr.io/YOUR_GITHUB_ORG/sodam-mcp:v3
+    image: ghcr.io/namanmoo-damso/ops-agent-kma-mcp:v3
     container_name: mcp
     env_file: ./agent.env
     network_mode: host
