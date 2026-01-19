@@ -43,7 +43,7 @@ services:
               count: all
               capabilities: [gpu]
     healthcheck:
-      test: ['CMD', '/bin/ollama', 'list']
+      test: ['CMD', '/usr/bin/ollama', 'list']
       interval: 10s
       timeout: 5s
       retries: 10
