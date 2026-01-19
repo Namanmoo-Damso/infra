@@ -1,0 +1,101 @@
+services:
+  stt:
+    image: ghcr.io/namanmoo-damso/agent-stt:v3
+    container_name: whisper-stt
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - WHISPER_LANGUAGE=ko
+      - WHISPER_BEAM_SIZE=5
+      - WHISPER_VAD_FILTER=true
+      - WHISPER_VAD_THRESHOLD=0.5
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:8000/health || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  ollama:
+    image: ghcr.io/namanmoo-damso/agent-llm:v3
+    container_name: ollama-llm
+    network_mode: host
+    volumes:
+      - ollama-models:/root/.ollama
+    restart: unless-stopped
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ['CMD', '/bin/ollama', 'list']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  agent:
+    image: ghcr.io/namanmoo-damso/agent-server:v3
+    container_name: agent-server
+    env_file: ./agent.env
+    network_mode: host
+    restart: unless-stopped
+    command: ['python', '-m', 'agent.main', 'start']
+    healthcheck:
+      test: ['CMD-SHELL', 'pgrep -f agent.main || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      stt:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+
+  transcript-storage:
+    image: ghcr.io/namanmoo-damso/agent-server:v3
+    container_name: transcript-storage
+    env_file: ./agent.env
+    network_mode: host
+    restart: unless-stopped
+    command: ['python', 'agent/storage/transcript_listener.py']
+    healthcheck:
+      test: ['CMD-SHELL', 'pgrep -f transcript_listener.py || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      - agent
+
+  kma-mcp:
+    image: ghcr.io/YOUR_GITHUB_ORG/sodam-mcp:v3
+    container_name: mcp
+    env_file: ./agent.env
+    network_mode: host
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:8001/sse || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  ollama-models:
