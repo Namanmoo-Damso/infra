@@ -54,3 +54,9 @@ variable "start_stopped" {
   type        = bool
   default     = false
 }
+
+variable "availability_zone" {
+  description = "인스턴스를 생성할 가용 영역 (선택사항)"
+  type        = string
+  default     = ""
+}

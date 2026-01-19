@@ -1,5 +1,5 @@
 # =============================================================================
-# 개발 환경 v2 - LiveKit 전용 서버
+# Python Bot Server - ops-bot 프로젝트용
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -10,26 +10,23 @@ data "aws_security_group" "general_dev_server" {
 }
 
 # -----------------------------------------------------------------------------
-# LiveKit 전용 서버
+# Python Bot 서버
 # =============================================================================
-# 개발자들이 공유하는 단일 LiveKit 인스턴스
-# WebRTC 미디어 서버로 독립 운영
-# c7i 인스턴스: CPU 집약적인 WebRTC 미디어 처리에 최적화
+# ops-bot Python 프로젝트 배포용 인스턴스
+# SSH(22), HTTP(80), HTTPS(443) 포트 사용
+# rsync, docker, git, gh 사전 설치
 # -----------------------------------------------------------------------------
-module "livekit_server" {
+module "python_bot_server" {
   source = "../../../modules/compute/ec2-instance"
 
-  instance_count    = 1
-  ami_id            = "ami-0c447e8442d5380a3" # Ubuntu 24.04 LTS
-  instance_type     = "c7i.xlarge"            # 4 vCPU, 8GB RAM (WebRTC 최적화)
-  volume_size       = 20
-  key_name          = "dev-server"
-  security_group_id = data.aws_security_group.general_dev_server.id
-  tag_name          = "livekit-dev-server"
+  instance_count      = 1
+  ami_id              = "ami-0c447e8442d5380a3" # Ubuntu 24.04 LTS
+  instance_type       = "m7i.2xlarge"           # 8 vCPU, 32GB RAM
+  volume_size         = 100
+  key_name            = "dev-server"
+  security_group_id   = data.aws_security_group.general_dev_server.id
+  availability_zone   = "ap-northeast-2d"
+  tag_name            = "python-bot-server"
 
-  user_data = templatefile("${path.module}/user-data/livekit-init.sh.tftpl", {
-    webhook_urls       = join(" ", var.api_webhook_urls)
-    livekit_api_key    = var.livekit_api_key
-    livekit_api_secret = var.livekit_api_secret
-  })
+  user_data = templatefile("${path.module}/user-data/python-bot-init.sh.tftpl", {})
 }

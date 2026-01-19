@@ -19,6 +19,9 @@ resource "aws_instance" "this" {
   # user_data가 제공된 경우에만 적용
   user_data = var.user_data != "" ? var.user_data : null
 
+  # Availability Zone (제공된 경우에만)
+  availability_zone = var.availability_zone != "" ? var.availability_zone : null
+
   # Public IP 자동 할당 활성화
   associate_public_ip_address = true
 
