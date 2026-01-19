@@ -1,0 +1,16 @@
+# Cloned repositories for build
+deployment-artifacts/build/repos/
+
+# Environment files (secrets)
+*.env
+!*.env.example
+
+# Terraform
+*.tfstate
+*.tfstate.*
+*.tfvars
+.terraform/
+.terraform.lock.hcl
+
+# Logs
+*.log
