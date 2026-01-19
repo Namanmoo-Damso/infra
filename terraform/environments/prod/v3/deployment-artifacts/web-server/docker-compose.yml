@@ -3,11 +3,16 @@ services:
     image: ghcr.io/namanmoo-damso/ops-web:v3
     container_name: web-server
     env_file: ./web.env
-    ports:
-      - '3000:3000'
+    network_mode: host
     restart: unless-stopped
+    environment:
+      - HOSTNAME=0.0.0.0 # 모든 인터페이스(127.0.0.1 포함) 수신 허용
     healthcheck:
-      test: ['CMD-SHELL', 'curl -f http://localhost:3000/ || exit 1']
+      test:
+        [
+          'CMD-SHELL',
+          'wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/ || exit 1',
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
