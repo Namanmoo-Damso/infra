@@ -61,7 +61,7 @@ resource "aws_instance" "ai_agent" {
     encrypted             = true
   }
 
-  # user_data = file("${path.module}/user-data/ai-agent-init.sh")
+  user_data = file("${path.module}/user-data/ai-agent-init.sh")
 
   tags = {
     Name        = "${var.project_name}-${var.environment}-ai-agent"
@@ -88,7 +88,7 @@ resource "aws_instance" "api_server" {
     encrypted             = true
   }
 
-  # user_data = file("${path.module}/user-data/api-server-init.sh")
+  user_data = file("${path.module}/user-data/api-server-init.sh")
 
   tags = {
     Name        = "${var.project_name}-${var.environment}-api-server"
@@ -115,7 +115,7 @@ resource "aws_instance" "web_server" {
     encrypted             = true
   }
 
-  # user_data = file("${path.module}/user-data/web-server-init.sh")
+  user_data = file("${path.module}/user-data/web-server-init.sh")
 
   tags = {
     Name        = "${var.project_name}-${var.environment}-web-server"
