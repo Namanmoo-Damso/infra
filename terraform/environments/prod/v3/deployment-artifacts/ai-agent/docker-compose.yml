@@ -74,7 +74,7 @@ services:
     env_file: ./agent.env
     network_mode: host
     restart: unless-stopped
-    command: ['python', 'agent/storage/transcript_listener.py']
+    command: ['python', '-m', 'agent.storage.transcript_listener']
     healthcheck:
       test: ['CMD-SHELL', 'pgrep -f transcript_listener.py || exit 1']
       interval: 30s
