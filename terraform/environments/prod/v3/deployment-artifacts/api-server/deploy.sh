@@ -79,9 +79,37 @@ else
 fi
 echo ""
 
+# Step 3.5: Initialize database (if needed)
+log_step "Step 3.5: Initializing database..."
+if [ -f "init-db.sql" ]; then
+    log_info "Found init-db.sql, checking database initialization..."
+
+    # Extract DB connection info from api.env
+    source api.env
+
+    # Install psql if not available
+    if ! command -v psql &> /dev/null; then
+        log_info "Installing PostgreSQL client..."
+        sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null 2>&1
+    fi
+
+    # Run init-db.sql (it's idempotent - safe to run multiple times)
+    log_info "Running database initialization script..."
+    if PGPASSWORD=$(echo "$DATABASE_URL" | sed -n 's/.*:\/\/[^:]*:\([^@]*\)@.*/\1/p') \
+        psql "${DATABASE_URL/no-verify/require}" -f init-db.sql > /dev/null 2>&1; then
+        log_info "✓ Database initialized successfully"
+    else
+        log_warn "Database initialization failed (may already be initialized)"
+        log_info "Continuing with deployment..."
+    fi
+else
+    log_warn "init-db.sql not found, skipping database initialization"
+fi
+echo ""
+
 # Step 4: Stop existing containers (if any)
 log_step "Step 4: Stopping existing containers..."
-if docker compose -f "$COMPOSE_FILE" down 2>/dev/null; then
+if docker compose -f "$COMPOSE_FILE" down 2> /dev/null; then
     log_info "✓ Existing containers stopped"
 else
     log_info "No existing containers to stop"
