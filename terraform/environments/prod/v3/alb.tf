@@ -14,6 +14,8 @@ resource "aws_lb" "main" {
 
   enable_deletion_protection = true
   enable_http2               = true
+  # SSE 통신을 위해 Idle Timeout을 60초(기본값)에서 3600초(1h)로 증가
+  idle_timeout = 3600
 
   tags = {
     Name        = "${var.project_name}-${var.environment}-alb"
@@ -44,7 +46,15 @@ resource "aws_lb_target_group" "api" {
     matcher             = "200"
   }
 
-  deregistration_delay = 30
+  # SSE 연결 배수(draining) 시간을 확보하기 위해 300초로 증가
+  deregistration_delay = 300
+
+  # SSE 재연결 시 동일 인스턴스 유지를 위해 Stickiness 활성화
+  stickiness {
+    type            = "lb_cookie"
+    enabled         = true
+    cookie_duration = 86400
+  }
 
   tags = {
     Name        = "${var.project_name}-${var.environment}-api-tg"
