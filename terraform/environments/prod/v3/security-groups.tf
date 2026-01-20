@@ -286,3 +286,71 @@ resource "aws_security_group" "redis" {
     Environment = var.environment
   }
 }
+
+# -----------------------------------------------------------------------------
+# EC2 Security Group - LiveKit Server
+# -----------------------------------------------------------------------------
+resource "aws_security_group" "livekit" {
+  name        = "${var.project_name}-${var.environment}-livekit-sg"
+  description = "Security group for LiveKit Server EC2"
+  vpc_id      = aws_vpc.main.id
+
+  # LiveKit WebSocket/Signaling port (TCP 7880) from NLB
+  ingress {
+    description = "LiveKit signaling from NLB"
+    from_port   = 7880
+    to_port     = 7880
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # LiveKit TCP fallback port (TCP 7883)
+  ingress {
+    description = "LiveKit TCP fallback"
+    from_port   = 7883
+    to_port     = 7883
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # WebRTC media ports (UDP 50000-60000)
+  ingress {
+    description = "WebRTC media UDP"
+    from_port   = 50000
+    to_port     = 60000
+    protocol    = "udp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # WebRTC media ports (TCP 50000-60000) - fallback
+  ingress {
+    description = "WebRTC media TCP fallback"
+    from_port   = 50000
+    to_port     = 60000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # VPC 내부 통신
+  ingress {
+    description = "Internal VPC communication"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = [var.vpc_cidr]
+  }
+
+  # Outbound - All
+  egress {
+    description = "Allow all outbound"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-livekit-sg"
+    Environment = var.environment
+  }
+}

@@ -115,12 +115,43 @@ variable "domain_name" {
 variable "livekit_domain" {
   description = "Livekit 서버 도메인"
   type        = string
-  default     = "livekit.sodam.store"
+  default     = "prod-livekit.sodam.store"
 }
 
 variable "acm_certificate_arn" {
   description = "ACM 인증서 ARN (HTTPS용)"
   type        = string
   default     = "arn:aws:acm:ap-northeast-2:292873911373:certificate/f344fda3-0a63-44ac-9fe6-e58c0c0ab971"
+  sensitive   = true
+}
+
+# -----------------------------------------------------------------------------
+# LiveKit 설정
+# -----------------------------------------------------------------------------
+variable "livekit_instance_type" {
+  description = "LiveKit 서버 인스턴스 타입"
+  type        = string
+  default     = "c7i.xlarge" # 4 vCPU, 8GB RAM (WebRTC 최적화)
+}
+
+variable "livekit_api_webhook_urls" {
+  description = "LiveKit webhook을 받을 API 서버 URL 목록"
+  type        = list(string)
+  default = [
+    "https://api.sodam.store/webhook/livekit"
+  ]
+}
+
+variable "livekit_api_key" {
+  description = "LiveKit API Key"
+  type        = string
+  default     = "LK_PROD_API_KEY_PLACEHOLDER"
+  sensitive   = true
+}
+
+variable "livekit_api_secret" {
+  description = "LiveKit API Secret"
+  type        = string
+  default     = "PROD_API_SECRET_PLACEHOLDER"
   sensitive   = true
 }

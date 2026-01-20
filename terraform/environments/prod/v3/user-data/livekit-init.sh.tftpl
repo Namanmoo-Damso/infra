@@ -1,0 +1,172 @@
+#!/bin/bash
+# =============================================================================
+# LiveKit 서버 초기화 스크립트 (Production v3)
+# =============================================================================
+# 1. 기본 시스템 설정 (Timezone, Docker 등)
+# 2. LiveKit 서버 설정 및 실행
+# =============================================================================
+
+set -e
+
+LOG_FILE="/home/ubuntu/initialization.log"
+LIVEKIT_DIR="/home/ubuntu/livekit"
+
+# 로그 함수
+log_message() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
+}
+
+log_message "=== LiveKit Server Initialization Started ==="
+
+# -----------------------------------------------------------------------------
+# 1. 시스템 업데이트 및 기본 패키지 설치
+# -----------------------------------------------------------------------------
+log_message "[1/6] Updating system and installing base packages..."
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -y
+apt-get upgrade -y
+apt-get install -y \
+    curl wget vim unzip jq htop \
+    build-essential ca-certificates gnupg lsb-release
+
+# -----------------------------------------------------------------------------
+# 2. 시간대 설정 (Asia/Seoul)
+# -----------------------------------------------------------------------------
+log_message "[2/6] Setting timezone to Asia/Seoul..."
+timedatectl set-timezone Asia/Seoul
+
+# -----------------------------------------------------------------------------
+# 3. Docker 설치
+# -----------------------------------------------------------------------------
+log_message "[3/6] Installing Docker..."
+if ! command -v docker &> /dev/null; then
+    install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+    chmod a+r /etc/apt/keyrings/docker.asc
+
+    echo \
+        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+      $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+                                                               | tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+    apt-get update -y
+    apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+    systemctl start docker
+    systemctl enable docker
+    usermod -aG docker ubuntu
+fi
+
+# -----------------------------------------------------------------------------
+# 4. AWS CLI 설치
+# -----------------------------------------------------------------------------
+log_message "[4/6] Installing AWS CLI..."
+if ! command -v aws &> /dev/null; then
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    unzip awscliv2.zip
+    ./aws/install
+    rm -rf aws awscliv2.zip
+fi
+
+# =============================================================================
+# 5. LiveKit 디렉터리 준비
+# =============================================================================
+log_message "[5/6] Preparing LiveKit directory and configuration..."
+mkdir -p "$LIVEKIT_DIR"
+chown ubuntu:ubuntu "$LIVEKIT_DIR"
+
+# -----------------------------------------------------------------------------
+# Docker Compose 파일 생성 (LiveKit only - NLB handles SSL)
+# -----------------------------------------------------------------------------
+cat << EOF > "$LIVEKIT_DIR/docker-compose.yaml"
+services:
+  # LiveKit: 미디어 서버 (TCP 7880 수신, UDP 50000-60000 사용)
+  livekit:
+    image: livekit/livekit-server:latest
+    command: --config /etc/livekit.yaml
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml
+EOF
+chown ubuntu:ubuntu "$LIVEKIT_DIR/docker-compose.yaml"
+
+# LiveKit Config 파일 생성 (템플릿)
+# EC2 메타데이터 서비스에서 Private IP를 동적으로 가져옵니다.
+# IMDSv2 사용 (보안 강화)
+log_message "Fetching Private IP from EC2 metadata service (IMDSv2)..."
+
+# 1. 토큰 발급
+TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" \
+    -H "X-aws-ec2-metadata-token-ttl-seconds: 21600" \
+    -s -f --max-time 5 || echo "")
+
+if [ -z "$TOKEN" ]; then
+    log_message "ERROR: Failed to get IMDSv2 token"
+    exit 1
+fi
+
+# 2. 토큰을 사용해서 Public IP 가져오기 (Media Stream 직접 연결용)
+PUBLIC_IP=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" \
+    -s -f --max-time 5 \
+    http://169.254.169.254/latest/meta-data/public-ipv4 || echo "")
+
+if [ -z "$PUBLIC_IP" ]; then
+    log_message "ERROR: Failed to fetch Public IP from metadata service"
+    exit 1
+fi
+
+log_message "Public IP: $PUBLIC_IP"
+
+cat << 'LIVEKIT_EOF' > "$LIVEKIT_DIR/livekit.yaml"
+port: 7880
+log_level: info
+rtc:
+    # EC2 메타데이터에서 가져온 Public IP (WebRTC Media Stream용)
+    node_ip: PUBLIC_IP_PLACEHOLDER
+    tcp_port: 7883
+    port_range_start: 50000
+    port_range_end: 60000
+    allow_tcp_fallback: true
+
+keys:
+    LIVEKIT_API_KEY_PLACEHOLDER: LIVEKIT_API_SECRET_PLACEHOLDER
+
+webhook:
+    # LiveKit 서버가 이 키를 사용하여 웹훅 요청에 서명합니다.
+    # 수신 서버(API 서버)는 이 키로 JWT를 검증해야 합니다.
+    api_key: LIVEKIT_API_KEY_PLACEHOLDER
+    urls:
+WEBHOOK_URLS_PLACEHOLDER
+LIVEKIT_EOF
+
+# Placeholder 치환
+sed -i "s/PUBLIC_IP_PLACEHOLDER/$PUBLIC_IP/g" "$LIVEKIT_DIR/livekit.yaml"
+sed -i "s/LIVEKIT_API_KEY_PLACEHOLDER/${livekit_api_key}/g" "$LIVEKIT_DIR/livekit.yaml"
+sed -i "s/LIVEKIT_API_SECRET_PLACEHOLDER/${livekit_api_secret}/g" "$LIVEKIT_DIR/livekit.yaml"
+
+# Webhook URLs 추가
+WEBHOOK_SECTION=""
+%{ for url in split(" ", webhook_urls) ~}
+WEBHOOK_SECTION="$WEBHOOK_SECTION        - ${url}\n"
+%{ endfor ~}
+sed -i "s|WEBHOOK_URLS_PLACEHOLDER|$WEBHOOK_SECTION|g" "$LIVEKIT_DIR/livekit.yaml"
+chown ubuntu:ubuntu "$LIVEKIT_DIR/livekit.yaml"
+
+# -----------------------------------------------------------------------------
+# 6. LiveKit 실행
+# -----------------------------------------------------------------------------
+log_message "[6/6] Starting LiveKit Server..."
+cd "$LIVEKIT_DIR"
+docker compose up -d
+
+log_message "Waiting for LiveKit to be healthy..."
+sleep 5
+docker compose ps | tee -a "$LOG_FILE"
+
+# -----------------------------------------------------------------------------
+# 완료
+# -----------------------------------------------------------------------------
+log_message "=== LiveKit Server Initialization Completed ==="
+chown ubuntu:ubuntu "$LOG_FILE"
+touch /tmp/init-complete

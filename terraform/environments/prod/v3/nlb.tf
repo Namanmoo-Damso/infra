@@ -2,8 +2,8 @@
 # Network Load Balancer (Livekit)
 # =============================================================================
 #
-# 참고: 현재는 environments/dev/livekit의 기존 서버를 사용
-# 이 파일은 향후 프로덕션 전용 Livekit 서버 구축 시 사용
+# NLB는 Signaling(WSS) 트래픽만 처리 (TCP 7880)
+# WebRTC Media Stream(UDP 50000-60000)은 클라이언트가 LiveKit EC2 Public IP로 직접 연결
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -65,47 +65,11 @@ resource "aws_lb_listener" "livekit_tcp" {
   }
 }
 
-# UDP Listener for WebRTC
-resource "aws_lb_listener" "livekit_udp" {
-  load_balancer_arn = aws_lb.livekit.arn
-  port              = 50000
-  protocol          = "UDP"
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.livekit_udp.arn
-  }
-}
-
-resource "aws_lb_target_group" "livekit_udp" {
-  name     = "${var.project_name}-${var.environment}-livekit-udp-tg"
-  port     = 50000
-  protocol = "UDP"
-  vpc_id   = aws_vpc.main.id
-
-  health_check {
-    enabled             = true
-    port                = 7880
-    protocol            = "TCP"
-    healthy_threshold   = 2
-    unhealthy_threshold = 2
-    interval            = 30
-  }
-
-  tags = {
-    Name        = "${var.project_name}-${var.environment}-livekit-udp-tg"
-    Environment = var.environment
-  }
-}
-
 # -----------------------------------------------------------------------------
 # Target Group Attachments
 # -----------------------------------------------------------------------------
-# 참고: 현재는 dev의 기존 Livekit 서버를 사용하므로 attachment는 주석 처리
-# 향후 프로덕션 전용 Livekit EC2 인스턴스 생성 시 활성화
-#
-# resource "aws_lb_target_group_attachment" "livekit" {
-#   target_group_arn = aws_lb_target_group.livekit.arn
-#   target_id        = aws_instance.livekit_server.id
-#   port             = 7880
-# }
+resource "aws_lb_target_group_attachment" "livekit_tcp" {
+  target_group_arn = aws_lb_target_group.livekit.arn
+  target_id        = aws_instance.livekit_server.id
+  port             = 7880
+}

@@ -123,3 +123,46 @@ resource "aws_instance" "web_server" {
     Role        = "Web"
   }
 }
+
+# -----------------------------------------------------------------------------
+# LiveKit Server
+# -----------------------------------------------------------------------------
+resource "aws_instance" "livekit_server" {
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = var.livekit_instance_type
+  subnet_id                   = aws_subnet.public_a.id
+  vpc_security_group_ids      = [aws_security_group.livekit.id]
+  iam_instance_profile        = aws_iam_instance_profile.ec2_profile.name
+  key_name                    = var.key_name
+  associate_public_ip_address = true
+
+  root_block_device {
+    volume_size           = 30
+    volume_type           = "gp3"
+    delete_on_termination = true
+    encrypted             = true
+  }
+
+  user_data = templatefile("${path.module}/user-data/livekit-init.sh.tftpl", {
+    webhook_urls       = join(" ", var.livekit_api_webhook_urls)
+    livekit_api_key    = var.livekit_api_key
+    livekit_api_secret = var.livekit_api_secret
+  })
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-livekit-server"
+    Environment = var.environment
+    Role        = "LiveKit"
+  }
+}
+
+# Elastic IP for LiveKit Server (Media Stream 직접 연결용)
+resource "aws_eip" "livekit" {
+  instance = aws_instance.livekit_server.id
+  domain   = "vpc"
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-livekit-eip"
+    Environment = var.environment
+  }
+}

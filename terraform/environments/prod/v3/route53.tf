@@ -43,19 +43,18 @@ resource "aws_route53_record" "api" {
 # A Record (ALIAS) - NLB
 # -----------------------------------------------------------------------------
 
-# livekit.sodam.store → NLB (AI Agent)
-# Note: 기존에 수동으로 생성된 레코드 사용 중이므로 Terraform 관리 제외
-# resource "aws_route53_record" "livekit" {
-#   zone_id = data.aws_route53_zone.main.zone_id
-#   name    = "livekit.sodam.store"
-#   type    = "A"
-#
-#   alias {
-#     name                   = aws_lb.livekit.dns_name
-#     zone_id                = aws_lb.livekit.zone_id
-#     evaluate_target_health = true
-#   }
-# }
+# prod-livekit.sodam.store → NLB (LiveKit Server)
+resource "aws_route53_record" "livekit" {
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = "prod-livekit.sodam.store"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.livekit.dns_name
+    zone_id                = aws_lb.livekit.zone_id
+    evaluate_target_health = true
+  }
+}
 
 # -----------------------------------------------------------------------------
 # Outputs
@@ -70,7 +69,7 @@ output "api_domain" {
   value       = aws_route53_record.api.fqdn
 }
 
-# output "livekit_domain" {
-#   description = "Livekit Server 도메인"
-#   value       = aws_route53_record.livekit.fqdn
-# }
+output "livekit_domain" {
+  description = "Livekit Server 도메인"
+  value       = aws_route53_record.livekit.fqdn
+}
