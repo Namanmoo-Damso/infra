@@ -11,6 +11,10 @@ set -e
 LOG_FILE="/home/ubuntu/initialization.log"
 LIVEKIT_DIR="/home/ubuntu/livekit"
 
+# Terraform에서 주입된 변수
+LIVEKIT_API_KEY="${livekit_api_key}"
+LIVEKIT_API_SECRET="${livekit_api_secret}"
+
 # 로그 함수
 log_message() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
@@ -142,8 +146,8 @@ LIVEKIT_EOF
 
 # Placeholder 치환
 sed -i "s/PUBLIC_IP_PLACEHOLDER/$PUBLIC_IP/g" "$LIVEKIT_DIR/livekit.yaml"
-sed -i "s/LIVEKIT_API_KEY_PLACEHOLDER/${livekit_api_key}/g" "$LIVEKIT_DIR/livekit.yaml"
-sed -i "s/LIVEKIT_API_SECRET_PLACEHOLDER/${livekit_api_secret}/g" "$LIVEKIT_DIR/livekit.yaml"
+sed -i "s/LIVEKIT_API_KEY_PLACEHOLDER/$LIVEKIT_API_KEY/g" "$LIVEKIT_DIR/livekit.yaml"
+sed -i "s/LIVEKIT_API_SECRET_PLACEHOLDER/$LIVEKIT_API_SECRET/g" "$LIVEKIT_DIR/livekit.yaml"
 
 # Webhook URLs 추가
 WEBHOOK_SECTION=""

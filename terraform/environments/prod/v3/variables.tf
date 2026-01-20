@@ -145,13 +145,13 @@ variable "livekit_api_webhook_urls" {
 variable "livekit_api_key" {
   description = "LiveKit API Key"
   type        = string
-  default     = "LK_PROD_API_KEY_PLACEHOLDER"
+  default     = "LK_154f88960804a7ec"
   sensitive   = true
 }
 
 variable "livekit_api_secret" {
   description = "LiveKit API Secret"
   type        = string
-  default     = "PROD_API_SECRET_PLACEHOLDER"
+  default     = "1d4b32dac495e14fced680129935a9eb8300e9a73841b08b0edae746a0c123b2"
   sensitive   = true
 }

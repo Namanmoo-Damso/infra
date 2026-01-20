@@ -52,7 +52,23 @@ resource "aws_lb_target_group" "livekit" {
 }
 
 # -----------------------------------------------------------------------------
-# Listener
+# Listener - TLS 443 (WSS 연결용)
+# -----------------------------------------------------------------------------
+resource "aws_lb_listener" "livekit_tls" {
+  load_balancer_arn = aws_lb.livekit.arn
+  port              = 443
+  protocol          = "TLS"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  certificate_arn   = var.acm_certificate_arn
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.livekit.arn
+  }
+}
+
+# -----------------------------------------------------------------------------
+# Listener - TCP 7880 (직접 연결 fallback용)
 # -----------------------------------------------------------------------------
 resource "aws_lb_listener" "livekit_tcp" {
   load_balancer_arn = aws_lb.livekit.arn
