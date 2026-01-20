@@ -35,9 +35,26 @@ resource "aws_instance" "this" {
   }
 }
 
+# 인스턴스가 완전히 running 상태가 될 때까지 대기
+resource "time_sleep" "wait_for_instance_ready" {
+  count = var.start_stopped ? var.instance_count : 0
+
+  depends_on = [aws_instance.this]
+
+  create_duration = "3m"
+}
+
 resource "aws_ec2_instance_state" "this" {
   count = var.start_stopped ? var.instance_count : 0
 
   instance_id = aws_instance.this[count.index].id
   state       = "stopped"
+
+  depends_on = [time_sleep.wait_for_instance_ready]
+
+  timeouts {
+    create = "15m"
+    update = "15m"
+    delete = "15m"
+  }
 }
