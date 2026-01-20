@@ -5,6 +5,7 @@ set -euo pipefail
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
@@ -15,6 +16,10 @@ REPO_URLS=(
     "https://github.com/Namanmoo-Damso/ops-web.git"
     "https://github.com/Namanmoo-Damso/ops-agent.git"
 )
+
+# Available services
+AVAILABLE_SERVICES=("api" "web" "agent-stt" "agent-ollama" "agent" "agent-kma-mcp")
+SERVICES_TO_BUILD=()
 
 # Helper functions
 log_info() {
@@ -29,12 +34,57 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+show_usage() {
+    echo "Usage: $0 [service1] [service2] ..."
+    echo ""
+    echo "Available services:"
+    for service in "${AVAILABLE_SERVICES[@]}"; do
+        echo "  - $service"
+    done
+    echo ""
+    echo "Examples:"
+    echo "  $0                    # Build and push all services"
+    echo "  $0 api                # Build and push only api"
+    echo "  $0 api web            # Build and push api and web"
+    echo "  $0 agent-stt agent    # Build and push agent-stt and agent"
+    exit 1
+}
+
+# Parse command line arguments
+if [ $# -eq 0 ]; then
+    # No arguments - build all services
+    SERVICES_TO_BUILD=("${AVAILABLE_SERVICES[@]}")
+else
+    # Validate provided services
+    for arg in "$@"; do
+        if [[ "$arg" == "-h" ]] || [[ "$arg" == "--help" ]]; then
+            show_usage
+        fi
+
+        valid=false
+        for service in "${AVAILABLE_SERVICES[@]}"; do
+            if [[ "$arg" == "$service" ]]; then
+                valid=true
+                SERVICES_TO_BUILD+=("$arg")
+                break
+            fi
+        done
+
+        if [ "$valid" = false ]; then
+            log_error "Invalid service: $arg"
+            echo ""
+            show_usage
+        fi
+    done
+fi
+
 # Change to script directory
 cd "$(dirname "$0")"
 
 log_info "=== v3 Image Build and Push Script ==="
 log_info "GHCR Organization: $GHCR_ORG"
 log_info "Tag: $TAG"
+echo -e "${BLUE}Services to build:${NC} ${SERVICES_TO_BUILD[*]}"
 echo ""
 
 # Step 1: Clean and initialize repos directory
@@ -86,8 +136,14 @@ echo ""
 log_info "Step 5: Building images with low CPU priority..."
 log_warn "This may take 10-30 minutes depending on your machine"
 log_info "Using nice -n 19 (lowest CPU priority) and ionice -c 3 (idle I/O priority)"
-if nice -n 19 ionice -c 3 docker compose -f docker-compose.build.yml build; then
-    log_info "✓ All images built successfully"
+
+build_cmd="nice -n 19 ionice -c 3 docker compose -f docker-compose.build.yml build"
+for service in "${SERVICES_TO_BUILD[@]}"; do
+    build_cmd="$build_cmd $service"
+done
+
+if $build_cmd; then
+    log_info "✓ Selected images built successfully"
 else
     log_error "Failed to build images"
     exit 1
@@ -96,8 +152,14 @@ echo ""
 
 # Step 6: Push images to GHCR
 log_info "Step 6: Pushing images to GHCR with low CPU priority..."
-if nice -n 19 ionice -c 3 docker compose -f docker-compose.build.yml push; then
-    log_info "✓ All images pushed successfully"
+
+push_cmd="nice -n 19 ionice -c 3 docker compose -f docker-compose.build.yml push"
+for service in "${SERVICES_TO_BUILD[@]}"; do
+    push_cmd="$push_cmd $service"
+done
+
+if $push_cmd; then
+    log_info "✓ Selected images pushed successfully"
 else
     log_error "Failed to push images"
     exit 1
@@ -107,12 +169,28 @@ echo ""
 # Summary
 log_info "=== Build and Push Complete ==="
 log_info "Images pushed to GHCR:"
-echo "  - ghcr.io/$GHCR_ORG/ops-api:$TAG"
-echo "  - ghcr.io/$GHCR_ORG/ops-web:$TAG"
-echo "  - ghcr.io/$GHCR_ORG/ops-agent-stt:$TAG"
-echo "  - ghcr.io/$GHCR_ORG/ops-agent-ollama:$TAG"
-echo "  - ghcr.io/$GHCR_ORG/ops-agent:$TAG (used by both agent and transcript-storage)"
-echo "  - ghcr.io/$GHCR_ORG/ops-agent-kma-mcp:$TAG"
+for service in "${SERVICES_TO_BUILD[@]}"; do
+    case "$service" in
+        "api")
+            echo "  - ghcr.io/$GHCR_ORG/ops-api:$TAG"
+            ;;
+        "web")
+            echo "  - ghcr.io/$GHCR_ORG/ops-web:$TAG"
+            ;;
+        "agent-stt")
+            echo "  - ghcr.io/$GHCR_ORG/ops-agent-stt:$TAG"
+            ;;
+        "agent-ollama")
+            echo "  - ghcr.io/$GHCR_ORG/ops-agent-ollama:$TAG"
+            ;;
+        "agent")
+            echo "  - ghcr.io/$GHCR_ORG/ops-agent:$TAG (used by both agent and transcript-storage)"
+            ;;
+        "agent-kma-mcp")
+            echo "  - ghcr.io/$GHCR_ORG/ops-agent-kma-mcp:$TAG"
+            ;;
+    esac
+done
 echo ""
 log_info "Next steps:"
 echo "  1. Deploy to EC2 using deployment scripts"
