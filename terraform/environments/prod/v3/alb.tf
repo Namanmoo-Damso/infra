@@ -12,7 +12,7 @@ resource "aws_lb" "main" {
   security_groups    = [aws_security_group.alb.id]
   subnets            = [aws_subnet.public_a.id, aws_subnet.public_c.id]
 
-  enable_deletion_protection = true
+  enable_deletion_protection = false
   enable_http2               = true
   # SSE 통신을 위해 Idle Timeout을 60초(기본값)에서 3600초(1h)로 증가
   idle_timeout = 3600

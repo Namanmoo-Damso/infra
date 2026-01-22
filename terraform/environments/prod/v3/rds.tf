@@ -65,7 +65,7 @@ resource "aws_db_instance" "postgres" {
   monitoring_role_arn             = aws_iam_role.rds_monitoring.arn
 
   # 삭제 보호
-  deletion_protection = true
+  deletion_protection = false
   skip_final_snapshot = true
 
   # 성능 개선
