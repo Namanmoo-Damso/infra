@@ -467,6 +467,9 @@ CREATE TABLE "care_alert_events" (
     "room_name" TEXT,
     "agent_response" TEXT,
     "source" TEXT NOT NULL DEFAULT 'ios',
+    -- v4: 위험도 분석 필드
+    "risk_level" TEXT,
+    "risk_score" DECIMAL(3,2),
 
     CONSTRAINT "care_alert_events_pkey" PRIMARY KEY ("id")
 );
@@ -793,3 +796,29 @@ CREATE INDEX "bulletins_created_at_idx" ON "bulletins"("created_at" DESC);
 -- Bulletins foreign keys
 ALTER TABLE "bulletins" ADD CONSTRAINT "bulletins_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "bulletins" ADD CONSTRAINT "bulletins_author_id_fkey" FOREIGN KEY ("author_id") REFERENCES "admins"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- ============================================================================
+-- v4 ADDITIONS
+-- ============================================================================
+
+-- CreateTable: admin_notifications (관리자 알림)
+CREATE TABLE "admin_notifications" (
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "organization_id" UUID NOT NULL,
+    "type" TEXT,
+    "title" TEXT,
+    "message" TEXT,
+    "metadata" JSONB,
+    "is_read" BOOLEAN NOT NULL DEFAULT false,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "admin_notifications_pkey" PRIMARY KEY ("id")
+);
+
+-- Admin notifications indexes
+CREATE INDEX "admin_notifications_organization_id_idx" ON "admin_notifications"("organization_id");
+CREATE INDEX "admin_notifications_is_read_idx" ON "admin_notifications"("is_read");
+CREATE INDEX "admin_notifications_created_at_idx" ON "admin_notifications"("created_at" DESC);
+
+-- Admin notifications foreign keys
+ALTER TABLE "admin_notifications" ADD CONSTRAINT "admin_notifications_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE CASCADE ON UPDATE CASCADE;
