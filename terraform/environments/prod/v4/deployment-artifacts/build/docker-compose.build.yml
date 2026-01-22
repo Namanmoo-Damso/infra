@@ -1,7 +1,7 @@
 services:
   # API Server (NestJS)
   api:
-    image: ghcr.io/namanmoo-damso/ops-api:v3
+    image: ghcr.io/namanmoo-damso/ops-api:v4
     platform: linux/amd64
     build:
       context: ./repos/ops-api
@@ -9,7 +9,7 @@ services:
 
   # Web Server (Next.js)
   web:
-    image: ghcr.io/namanmoo-damso/ops-web:v3
+    image: ghcr.io/namanmoo-damso/ops-web:v4
     platform: linux/amd64
     build:
       context: ./repos/ops-web
@@ -17,30 +17,25 @@ services:
       args:
         # Build-time environment variables for Next.js
         - NEXT_PUBLIC_API_BASE=https://api.sodam.store
-        - NEXT_PUBLIC_ROOM_NAME=sodam-v3
+        - NEXT_PUBLIC_ROOM_NAME=sodam-v4
         - NEXT_PUBLIC_NAVER_MAP_CLIENT_ID=98ncl9cv85
         - NEXT_PUBLIC_KAKAO_CLIENT_ID=ac893137a826fee92d16cf6e0b7039ee
         - NEXT_PUBLIC_GOOGLE_CLIENT_ID=810981442237-ub7rgb46fkf31he5k383dhnb4m4tmqql.apps.googleusercontent.com
 
-  # AI Agent - STT (Whisper)
-  agent-stt:
-    image: ghcr.io/namanmoo-damso/ops-agent-stt:v3
+  # NOTE: vLLM uses official vllm/vllm-openai:latest image directly
+  # No need to build - pulled from Docker Hub at deployment time
+
+  # AI Agent - AI Server (STT/TTS/VAD/Embedding)
+  agent-ai-server:
+    image: ghcr.io/namanmoo-damso/ops-agent-ai-server:v4
     platform: linux/amd64
     build:
-      context: ./repos/ops-agent/stt
+      context: ./repos/ops-agent/ai_server
       dockerfile: Dockerfile
 
-  # AI Agent - LLM (Ollama)
-  agent-ollama:
-    image: ghcr.io/namanmoo-damso/ops-agent-ollama:v3
-    platform: linux/amd64
-    build:
-      context: ./repos/ops-agent/llm
-      dockerfile: Dockerfile
-
-  # AI Agent - Main (used by both agent and transcript-storage)
+  # AI Agent - Main (used by agent, transcript-storage, vllm-warmup)
   agent:
-    image: ghcr.io/namanmoo-damso/ops-agent:v3
+    image: ghcr.io/namanmoo-damso/ops-agent:v4
     platform: linux/amd64
     build:
       context: ./repos/ops-agent
@@ -48,7 +43,7 @@ services:
 
   # AI Agent - KMA MCP Server
   agent-kma-mcp:
-    image: ghcr.io/namanmoo-damso/ops-agent-kma-mcp:v3
+    image: ghcr.io/namanmoo-damso/ops-agent-kma-mcp:v4
     platform: linux/amd64
     build:
       context: ./repos/ops-agent/mcp

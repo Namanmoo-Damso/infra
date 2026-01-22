@@ -10,15 +10,15 @@ NC='\033[0m' # No Color
 
 # Configuration
 GHCR_ORG="namanmoo-damso"
-TAG="v3"
+TAG="v4"
 REPO_URLS=(
     "https://github.com/Namanmoo-Damso/ops-api.git"
     "https://github.com/Namanmoo-Damso/ops-web.git"
     "https://github.com/Namanmoo-Damso/ops-agent.git"
 )
 
-# Available services
-AVAILABLE_SERVICES=("api" "web" "agent-stt" "agent-ollama" "agent" "agent-kma-mcp")
+# Available services (v4: vLLM uses official image, not built here)
+AVAILABLE_SERVICES=("api" "web" "agent-ai-server" "agent" "agent-kma-mcp")
 SERVICES_TO_BUILD=()
 
 # Helper functions
@@ -46,7 +46,10 @@ show_usage() {
     echo "  $0                    # Build and push all services"
     echo "  $0 api                # Build and push only api"
     echo "  $0 api web            # Build and push api and web"
-    echo "  $0 agent-stt agent    # Build and push agent-stt and agent"
+    echo "  $0 agent-ai-server agent    # Build and push agent-ai-server and agent"
+    echo ""
+    echo "Note: vLLM uses official vllm/vllm-openai:latest image from Docker Hub."
+    echo "      It is pulled directly at deployment time, not built here."
     exit 1
 }
 
@@ -81,7 +84,7 @@ fi
 # Change to script directory
 cd "$(dirname "$0")"
 
-log_info "=== v3 Image Build and Push Script ==="
+log_info "=== v4 Image Build and Push Script ==="
 log_info "GHCR Organization: $GHCR_ORG"
 log_info "Tag: $TAG"
 echo -e "${BLUE}Services to build:${NC} ${SERVICES_TO_BUILD[*]}"
@@ -91,7 +94,7 @@ echo ""
 log_info "Step 1: Cleaning repos directory..."
 rm -rf repos/
 mkdir -p repos/
-log_info "✓ repos/ directory initialized"
+log_info "repos/ directory initialized"
 echo ""
 
 # Step 2: Clone repositories with tag
@@ -101,7 +104,7 @@ for url in "${REPO_URLS[@]}"; do
     log_info "Cloning $repo_name..."
 
     if git clone --branch "$TAG" --depth 1 "$url" "repos/$repo_name" 2>&1; then
-        log_info "✓ $repo_name cloned successfully"
+        log_info "$repo_name cloned successfully"
     else
         log_error "Failed to clone $repo_name with tag $TAG"
         log_warn "Make sure the tag '$TAG' exists in all repositories"
@@ -119,13 +122,13 @@ if [ -z "${GHCR_USERNAME:-}" ] || [ -z "${GHCR_TOKEN:-}" ]; then
     echo "  export GHCR_TOKEN=<your-github-pat>"
     exit 1
 fi
-log_info "✓ GHCR credentials found"
+log_info "GHCR credentials found"
 echo ""
 
 # Step 4: Login to GHCR
 log_info "Step 4: Logging into GHCR..."
 if echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin; then
-    log_info "✓ Successfully logged into GHCR"
+    log_info "Successfully logged into GHCR"
 else
     log_error "Failed to login to GHCR"
     exit 1
@@ -143,7 +146,7 @@ for service in "${SERVICES_TO_BUILD[@]}"; do
 done
 
 if $build_cmd; then
-    log_info "✓ Selected images built successfully"
+    log_info "Selected images built successfully"
 else
     log_error "Failed to build images"
     exit 1
@@ -159,7 +162,7 @@ for service in "${SERVICES_TO_BUILD[@]}"; do
 done
 
 if $push_cmd; then
-    log_info "✓ Selected images pushed successfully"
+    log_info "Selected images pushed successfully"
 else
     log_error "Failed to push images"
     exit 1
@@ -169,6 +172,7 @@ echo ""
 # Summary
 log_info "=== Build and Push Complete ==="
 log_info "Images pushed to GHCR:"
+
 for service in "${SERVICES_TO_BUILD[@]}"; do
     case "$service" in
         "api")
@@ -177,20 +181,19 @@ for service in "${SERVICES_TO_BUILD[@]}"; do
         "web")
             echo "  - ghcr.io/$GHCR_ORG/ops-web:$TAG"
             ;;
-        "agent-stt")
-            echo "  - ghcr.io/$GHCR_ORG/ops-agent-stt:$TAG"
-            ;;
-        "agent-ollama")
-            echo "  - ghcr.io/$GHCR_ORG/ops-agent-ollama:$TAG"
+        "agent-ai-server")
+            echo "  - ghcr.io/$GHCR_ORG/ops-agent-ai-server:$TAG"
             ;;
         "agent")
-            echo "  - ghcr.io/$GHCR_ORG/ops-agent:$TAG (used by both agent and transcript-storage)"
+            echo "  - ghcr.io/$GHCR_ORG/ops-agent:$TAG (used by agent, transcript-storage, vllm-warmup)"
             ;;
         "agent-kma-mcp")
             echo "  - ghcr.io/$GHCR_ORG/ops-agent-kma-mcp:$TAG"
             ;;
     esac
 done
+echo ""
+log_info "Note: vLLM uses official vllm/vllm-openai:latest from Docker Hub"
 echo ""
 log_info "Next steps:"
 echo "  1. Deploy to EC2 using deployment scripts"

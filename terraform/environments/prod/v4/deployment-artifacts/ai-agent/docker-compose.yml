@@ -1,16 +1,33 @@
 services:
-  stt:
-    image: ghcr.io/namanmoo-damso/ops-agent-stt:v3
-    container_name: whisper-stt
+  # vLLM Server (Qwen3-8B-AWQ) - Port 8000
+  # Uses official vLLM image directly from Docker Hub
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: vllm-server
     network_mode: host
+    volumes:
+      - huggingface-cache:/root/.cache/huggingface
     restart: unless-stopped
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
-      - WHISPER_LANGUAGE=ko
-      - WHISPER_BEAM_SIZE=5
-      - WHISPER_VAD_FILTER=true
-      - WHISPER_VAD_THRESHOLD=0.5
+      - HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN:-}
+    command:
+      - --model
+      - Qwen/Qwen3-8B-AWQ
+      - --quantization
+      - awq_marlin
+      - --max-model-len
+      - "32768"
+      - --gpu-memory-utilization
+      - "0.65"
+      - --dtype
+      - half
+      - --trust-remote-code
+      - --enable-auto-tool-choice
+      - --tool-call-parser
+      - hermes
+      - --enable-prefix-caching
     deploy:
       resources:
         reservations:
@@ -22,19 +39,25 @@ services:
       test: ['CMD-SHELL', 'curl -f http://localhost:8000/health || exit 1']
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 30s
+      retries: 30
+      start_period: 120s
 
-  ollama:
-    image: ghcr.io/namanmoo-damso/ops-agent-ollama:v3
-    container_name: ollama-llm
+  # AI Server (STT/TTS/VAD/Embedding) - Port 8001
+  ai-server:
+    image: ghcr.io/namanmoo-damso/ops-agent-ai-server:v4
+    container_name: ai-server
     network_mode: host
-    volumes:
-      - ollama-models:/root/.ollama
     restart: unless-stopped
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - WHISPER_MODEL=large-v3-turbo
+      - WHISPER_DEVICE=cuda
+      - TTS_DEVICE=cuda
+      - TTS_VOICE=F2
+      - VAD_DEVICE=cuda
+      - TURN_DETECTOR_DEVICE=cuda
+      - MAX_CONCURRENT_REQUESTS=8
     deploy:
       resources:
         reservations:
@@ -43,14 +66,27 @@ services:
               count: all
               capabilities: [gpu]
     healthcheck:
-      test: ['CMD', '/usr/bin/ollama', 'list']
-      interval: 10s
-      timeout: 5s
-      retries: 10
+      test: ['CMD-SHELL', 'curl -f http://localhost:8001/health || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 5
       start_period: 60s
 
+  # vLLM Warmup (prefix cache initialization)
+  vllm-warmup:
+    image: ghcr.io/namanmoo-damso/ops-agent:v4
+    container_name: vllm-warmup
+    env_file: ./agent.env
+    network_mode: host
+    command: ['python', '-m', 'agent.warmup_service']
+    restart: 'no'
+    depends_on:
+      vllm:
+        condition: service_healthy
+
+  # Main Agent
   agent:
-    image: ghcr.io/namanmoo-damso/ops-agent:v3
+    image: ghcr.io/namanmoo-damso/ops-agent:v4
     container_name: agent-server
     env_file: ./agent.env
     network_mode: host
@@ -63,13 +99,16 @@ services:
       retries: 3
       start_period: 10s
     depends_on:
-      stt:
+      vllm:
         condition: service_healthy
-      ollama:
+      ai-server:
         condition: service_healthy
+      vllm-warmup:
+        condition: service_completed_successfully
 
+  # Transcript Storage
   transcript-storage:
-    image: ghcr.io/namanmoo-damso/ops-agent:v3
+    image: ghcr.io/namanmoo-damso/ops-agent:v4
     container_name: transcript-storage
     env_file: ./agent.env
     network_mode: host
@@ -84,18 +123,19 @@ services:
     depends_on:
       - agent
 
+  # KMA MCP Server (Weather API) - Port 8002
   kma-mcp:
-    image: ghcr.io/namanmoo-damso/ops-agent-kma-mcp:v3
-    container_name: mcp
+    image: ghcr.io/namanmoo-damso/ops-agent-kma-mcp:v4
+    container_name: kma-mcp
     env_file: ./agent.env
     network_mode: host
     restart: unless-stopped
     healthcheck:
-      test: ['CMD-SHELL', 'curl -fI http://localhost:8001/sse || exit 1']
+      test: ['CMD-SHELL', 'curl -f http://localhost:8002/health || exit 1']
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
 
 volumes:
-  ollama-models:
+  huggingface-cache:
