@@ -1,54 +1,39 @@
 #!/bin/bash
-# =============================================================================
-# Python Bot Server 초기화 스크립트
-# =============================================================================
-# 1. 기본 시스템 설정 (Timezone, 필수 패키지)
-# 2. Docker, Git, GitHub CLI, Rsync 설치
-# 3. Python 환경 준비
-# =============================================================================
-
 set -e
 
 LOG_FILE="/home/ubuntu/initialization.log"
-
-# 로그 함수
 log_message() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
 }
 
 log_message "=== Python Bot Server Initialization Started ==="
 
-# -----------------------------------------------------------------------------
-# 1. 시스템 업데이트 및 기본 패키지 설치
-# -----------------------------------------------------------------------------
+# [1/6] 시스템 업데이트 및 기본 패키지 설치
 log_message "[1/6] Updating system and installing base packages..."
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
 apt-get upgrade -y
+
+# jw.sh에 있던 의존성들을 미리 설치 (속도 및 편의성)
 apt-get install -y \
     curl wget vim unzip jq htop \
     build-essential ca-certificates gnupg lsb-release \
-    rsync software-properties-common
+    rsync software-properties-common fzf tmux \
+    ffmpeg libsm6 libxext6 libgl1 \
+    python3 python3-pip python3-venv git
 
-# -----------------------------------------------------------------------------
-# 2. 시간대 설정 (Asia/Seoul)
-# -----------------------------------------------------------------------------
+# [2/6] 시간대 설정
 log_message "[2/6] Setting timezone to Asia/Seoul..."
 timedatectl set-timezone Asia/Seoul
 
-# -----------------------------------------------------------------------------
-# 3. Docker 설치
-# -----------------------------------------------------------------------------
+# [3/6] Docker 설치 (Ubuntu 24.04 권장 방식)
 log_message "[3/6] Installing Docker..."
 if ! command -v docker &> /dev/null; then
     install -m 0755 -d /etc/apt/keyrings
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-    chmod a+r /etc/apt/keyrings/docker.asc
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    chmod a+r /etc/apt/keyrings/docker.gpg
 
-    echo \
-        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-      $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
-                                                               | tee /etc/apt/sources.list.d/docker.list > /dev/null
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
 
     apt-get update -y
     apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
@@ -58,55 +43,59 @@ if ! command -v docker &> /dev/null; then
     usermod -aG docker ubuntu
 fi
 
-# -----------------------------------------------------------------------------
-# 4. Git 설치
-# -----------------------------------------------------------------------------
-log_message "[4/6] Installing Git..."
-apt-get install -y git
-
-# -----------------------------------------------------------------------------
-# 5. GitHub CLI 설치
-# -----------------------------------------------------------------------------
-log_message "[5/6] Installing GitHub CLI..."
+# [4/6] GitHub CLI 설치
+log_message "[4/6] Installing GitHub CLI..."
 if ! command -v gh &> /dev/null; then
-    # GitHub CLI 공식 APT 저장소 추가
-    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-    chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-
+    mkdir -p -m 755 /etc/apt/keyrings
+    wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null
+    chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null
     apt-get update -y
     apt-get install -y gh
 fi
 
-# -----------------------------------------------------------------------------
-# 6. Python 환경 준비
-# -----------------------------------------------------------------------------
-log_message "[6/6] Setting up Python environment..."
-apt-get install -y python3 python3-pip python3-venv
-
-# Python 심볼릭 링크 설정
+# [5/6] Python 심볼릭 링크 (시스템 pip 업그레이드는 생략)
 if [ ! -e /usr/bin/python ]; then
     ln -s /usr/bin/python3 /usr/bin/python
 fi
 
-# pip 업그레이드
-python3 -m pip install --upgrade pip
+# [6/6] jw.sh 작성
+cat << 'EOF' > /home/ubuntu/jw.sh
+#!/bin/bash
+# 이 스크립트는 ubuntu 사용자로 실행하는 것을 권장합니다.
 
-# 프로젝트 디렉토리 생성
-mkdir -p /home/ubuntu/ops-bot
-chown -R ubuntu:ubuntu /home/ubuntu/ops-bot
+PROJECT_DIR="/home/ubuntu/damso"
+mkdir -p $PROJECT_DIR
+cd $PROJECT_DIR
 
-# -----------------------------------------------------------------------------
-# 완료
-# -----------------------------------------------------------------------------
-log_message "=== Python Bot Server Initialization Completed ==="
-log_message "Installed packages:"
-log_message "  - Docker: $(docker --version)"
-log_message "  - Git: $(git --version)"
-log_message "  - GitHub CLI: $(gh --version | head -1)"
-log_message "  - Rsync: $(rsync --version | head -1)"
-log_message "  - Python: $(python3 --version)"
-log_message "  - Pip: $(pip3 --version)"
+echo "Cloning repository..."
+git clone https://github.com/Namanmoo-Damso/ops-bot.git
+cd ops-bot
 
+echo "Setting up virtual environment..."
+python3 -m venv venv
+source venv/bin/activate
+
+# venv 내부에서 pip 업그레이드
+pip install --upgrade pip
+
+if [ -f "requirements.txt" ]; then
+    echo "Installing Python dependencies..."
+    pip install -r requirements.txt
+else
+    echo "Warning: requirements.txt not found."
+fi
+
+if [ -f "bot/.env.example" ]; then
+    cp bot/.env.example bot/.env
+    echo "Action Required: Please edit $PROJECT_DIR/ops-bot/bot/.env with your credentials."
+fi
+
+echo "Setup complete! Run: source venv/bin/activate && cd bot"
+EOF
+
+chmod +x /home/ubuntu/jw.sh
+chown ubuntu:ubuntu /home/ubuntu/jw.sh
+
+log_message "=== Initialization Completed ==="
 chown ubuntu:ubuntu "$LOG_FILE"
-touch /tmp/init-complete

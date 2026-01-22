@@ -19,14 +19,14 @@ data "aws_security_group" "general_dev_server" {
 module "python_bot_server" {
   source = "../../../modules/compute/ec2-instance"
 
-  instance_count      = 1
-  ami_id              = "ami-0c447e8442d5380a3" # Ubuntu 24.04 LTS
-  instance_type       = "m7i.2xlarge"           # 8 vCPU, 32GB RAM
-  volume_size         = 100
-  key_name            = "dev-server"
-  security_group_id   = data.aws_security_group.general_dev_server.id
-  availability_zone   = "ap-northeast-2d"
-  tag_name            = "python-bot-server"
+  instance_count    = 3                       # 한 instance 당 bot 25명
+  ami_id            = "ami-0c447e8442d5380a3" # Ubuntu 24.04 LTS
+  instance_type     = "c6i.2xlarge"           # 재완님 요청
+  volume_size       = 20
+  key_name          = "dev-server"
+  security_group_id = data.aws_security_group.general_dev_server.id
+  availability_zone = "ap-northeast-2d"
+  tag_name          = "python-bot-server"
 
   user_data = templatefile("${path.module}/user-data/python-bot-init.sh.tftpl", {})
 }
