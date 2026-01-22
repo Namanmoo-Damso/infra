@@ -1,6 +1,6 @@
 services:
   web:
-    image: ghcr.io/namanmoo-damso/ops-web:v3
+    image: ghcr.io/namanmoo-damso/ops-web:v4
     container_name: web-server
     env_file: ./web.env
     network_mode: host
