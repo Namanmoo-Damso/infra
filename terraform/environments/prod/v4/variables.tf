@@ -1,0 +1,157 @@
+# =============================================================================
+# v3 배포 환경 변수 정의
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# 환경 설정
+# -----------------------------------------------------------------------------
+variable "environment" {
+  description = "배포 환경"
+  type        = string
+  default     = "prod"
+}
+
+variable "project_name" {
+  description = "프로젝트 이름"
+  type        = string
+  default     = "sodam"
+}
+
+# -----------------------------------------------------------------------------
+# 네트워크 설정
+# -----------------------------------------------------------------------------
+variable "vpc_cidr" {
+  description = "VPC CIDR 블록"
+  type        = string
+  default     = "10.0.0.0/16"
+}
+
+variable "availability_zone_a" {
+  description = "첫 번째 가용 영역"
+  type        = string
+  default     = "ap-northeast-2a"
+}
+
+variable "availability_zone_c" {
+  description = "두 번째 가용 영역"
+  type        = string
+  default     = "ap-northeast-2c"
+}
+
+# -----------------------------------------------------------------------------
+# EC2 인스턴스 설정
+# -----------------------------------------------------------------------------
+variable "ai_agent_instance_type" {
+  description = "AI Agent 서버 인스턴스 타입 (GPU 필요)"
+  type        = string
+  default     = "g5.2xlarge" # 1 GPU, 8 vCPU, 32GB RAM
+}
+
+variable "api_instance_type" {
+  description = "API 서버 인스턴스 타입"
+  type        = string
+  default     = "t3.medium" # 2 vCPU, 4GB RAM
+}
+
+variable "web_instance_type" {
+  description = "Web 서버 인스턴스 타입"
+  type        = string
+  default     = "t3.small" # 2 vCPU, 2GB RAM
+}
+
+variable "key_name" {
+  description = "EC2 키페어 이름"
+  type        = string
+  default     = "dev-server"
+}
+
+# -----------------------------------------------------------------------------
+# RDS 설정
+# -----------------------------------------------------------------------------
+variable "db_instance_class" {
+  description = "RDS 인스턴스 클래스"
+  type        = string
+  default     = "db.t3.micro"
+}
+
+variable "db_name" {
+  description = "데이터베이스 이름"
+  type        = string
+  default     = "sodam_prod"
+}
+
+variable "db_username" {
+  description = "데이터베이스 마스터 사용자명"
+  type        = string
+  default     = "sodam_admin"
+  sensitive   = true
+}
+
+variable "db_password" {
+  description = "데이터베이스 마스터 비밀번호"
+  type        = string
+  default     = "sodam-prod-db-2026"
+  sensitive   = true
+}
+
+# -----------------------------------------------------------------------------
+# ElastiCache 설정
+# -----------------------------------------------------------------------------
+variable "redis_node_type" {
+  description = "ElastiCache Redis 노드 타입"
+  type        = string
+  default     = "cache.t3.micro"
+}
+
+# -----------------------------------------------------------------------------
+# 도메인 설정
+# -----------------------------------------------------------------------------
+variable "domain_name" {
+  description = "기본 도메인"
+  type        = string
+  default     = "sodam.store"
+}
+
+variable "livekit_domain" {
+  description = "Livekit 서버 도메인"
+  type        = string
+  default     = "prod-livekit.sodam.store"
+}
+
+variable "acm_certificate_arn" {
+  description = "ACM 인증서 ARN (HTTPS용)"
+  type        = string
+  default     = "arn:aws:acm:ap-northeast-2:292873911373:certificate/f344fda3-0a63-44ac-9fe6-e58c0c0ab971"
+  sensitive   = true
+}
+
+# -----------------------------------------------------------------------------
+# LiveKit 설정
+# -----------------------------------------------------------------------------
+variable "livekit_instance_type" {
+  description = "LiveKit 서버 인스턴스 타입"
+  type        = string
+  default     = "c7i.xlarge" # 4 vCPU, 8GB RAM (WebRTC 최적화)
+}
+
+variable "livekit_api_webhook_urls" {
+  description = "LiveKit webhook을 받을 API 서버 URL 목록"
+  type        = list(string)
+  default = [
+    "https://api.sodam.store/webhook/livekit"
+  ]
+}
+
+variable "livekit_api_key" {
+  description = "LiveKit API Key"
+  type        = string
+  default     = "LK_154f88960804a7ec"
+  sensitive   = true
+}
+
+variable "livekit_api_secret" {
+  description = "LiveKit API Secret"
+  type        = string
+  default     = "1d4b32dac495e14fced680129935a9eb8300e9a73841b08b0edae746a0c123b2"
+  sensitive   = true
+}
